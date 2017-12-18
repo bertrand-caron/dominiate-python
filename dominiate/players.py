@@ -1,7 +1,8 @@
 import logging
+from typing import Dict, Optional
 
-from game import Game, BuyDecision, ActDecision, TrashDecision, DiscardDecision, MultiDecision, INF
-from cards import Copper, Silver, Gold, Curse, Estate, Duchy, Province
+from game import Game, BuyDecision, ActDecision, TrashDecision, DiscardDecision, MultiDecision, GainDecision, INF
+from cards import Card, Copper, Silver, Gold, Curse, Estate, Duchy, Province
 
 class Player(object):
     def __init__(self, *args) -> None:
@@ -14,6 +15,9 @@ class Player(object):
 
     def make_multi_decision(self, decision, state) -> None:
         raise NotImplementedError
+
+    def make_gain_decision(self, card: Card) -> None:
+        return card
 
     def __str__(self) -> str:
         return self.name
@@ -105,6 +109,8 @@ class AIPlayer(Player):
             choice = self.make_discard_decision(decision)
         elif isinstance(decision, TrashDecision):
             choice = self.make_trash_decision(decision)
+        elif isinstance(decision, GainDecision):
+            choice = self.make_gain_decision(decision.card)
         else:
             raise NotImplementedError
         return decision.choose(choice)
@@ -135,25 +141,11 @@ class BigMoney(AIPlayer):
         else:
             return [None, Silver, Gold, Province]
 
-    def buy_priority(self, decision, card):
-        """
-        Assign a numerical priority to each card that can be bought.
-        """
-        try:
-            return self.buy_priority_order(decision).index(card)
-        except ValueError:
-            return -1
-
-    def make_buy_decision(self, decision):
+    def make_buy_decision(self, decision) -> Optional[Card]:
         """
         Choose a card to buy.
-
-        By default, this chooses the card with the highest positive
-        buy_priority.
         """
-        choices = decision.choices()
-        choices.sort(key=lambda x: self.buy_priority(decision, x))
-        return choices[-1]
+        return self.buy_priority_order(decision)
 
     def act_priority(self, decision, choice):
         """
@@ -221,8 +213,10 @@ class BigMoney(AIPlayer):
         actions_sorted.sort(key=lambda a: a.actions)
         plus_actions = sum([ca.actions for ca in actions_sorted])
         wasted_actions = len(actions_sorted) - plus_actions - decision.state().actions
-        victory_cards = [ca for ca in choices if ca.isVictory() and
-                         not ca.isAction() and not ca.isTreasure()]
+        victory_cards = [
+            card for card in choices
+            if card.isVictory() and not card.isAction() and not card.isTreasure()
+        ]
         if wasted_actions > 0:
             return actions_sorted[0]
         elif len(victory_cards):

@@ -1,7 +1,7 @@
 from typing import Any
 
 from game import Curse, Estate, Duchy, Province, Copper, Silver, Gold
-from game import Card, TrashDecision, DiscardDecision, Game
+from game import Card, TrashDecision, DiscardDecision, GainDecision, Game
 
 # simple actions
 Village = Card('Village', 3, actions=2, cards=1)
@@ -38,6 +38,11 @@ def militia_attack(game):
         lambda g: DiscardDecision(g, 2, 2)
     )
 
+def witch_attack(game):
+    return game.attack_with_decision(
+        lambda g: GainDecision(g, card=Curse)
+    )
+
 def throne_room_action(game: Game) -> Any:
     return None
 
@@ -52,8 +57,10 @@ Militia = Card('Militia', 4, coins=2, effect=militia_attack)
 Moat = Card('Moat', 2, cards=2, isDefense=True)
 Throne_Room = Card('Throne Room', 4, actions=1, effect=throne_room_action)
 Bridge = Card('Bridge', 4, coins=1, buys=1, effect=bridge_action)
+Witch = Card('Witch', 5, cards=2, effect=witch_attack)
 
 BASE_ACTIONS = [
     Village, Cellar, Smithy, Festival, Market, Laboratory,
     Chapel, Warehouse, Council_Room, Militia, Moat,
+    Witch,
 ]

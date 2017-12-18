@@ -104,6 +104,7 @@ Copper = Card('Copper', 0, treasure=1)
 Silver = Card('Silver', 3, treasure=2)
 Gold   = Card('Gold', 6, treasure=3)
 
+DEFAULT_HAND_SIZE = 5
 STARTING_HAND = (Copper,)*7 + (Estate,)*3
 
 class PlayerState(object):
@@ -200,12 +201,12 @@ class PlayerState(object):
 
     def next_turn(self):
         """
-        First, discard everything. Then, get 5 cards, 1 action, and 1 buy.
+        First, discard everything. Then, get 5 (DEFAULT_HAND_SIZE) cards, 1 action, and 1 buy.
         """
         return PlayerState(
           self.player, (), self.drawpile, self.discard+self.hand+self.tableau,
           (), actions=1, buys=1, coins=0
-        ).draw(5)
+        ).draw(DEFAULT_HAND_SIZE)
 
     def gain(self, card):
         "Gain a single card."
@@ -222,6 +223,7 @@ class PlayerState(object):
 
     def gain_cards(self, cards):
         "Gain multiple cards."
+        print('Player {0} gains {1}'.format(self.player, cards))
         return PlayerState(
             self.player,
             self.hand,
@@ -326,7 +328,7 @@ class PlayerState(object):
         """
         state = PlayerState(self.player, (), cards, self.all_cards(), (),
                             1, 1, 0)
-        return state.draw(5)
+        return state.draw(DEFAULT_HAND_SIZE)
 
     def simulate_hands(self, n=100, cards=()):
         """
@@ -385,10 +387,12 @@ class Game(object):
             Province: VICTORY_CARDS[len(players)],
             Copper: 60 - 7 * len(players),
             Silver: 40,
-            Gold: 30
+            Gold: 30,
+            Curse: 10, #TODO: Find exact formula
         }
+        print(var_cards)
         for card in var_cards:
-            counts[card] = 10
+            counts[card] = 10 #TODO: This formula needs to be adjusted or treasure cards
 
         playerstates = [PlayerState.initial_state(p) for p in players]
         random.shuffle(playerstates)
@@ -446,7 +450,7 @@ class Game(object):
         """
         new_counts = self.card_counts.copy()
         new_counts[card] -= 1
-        assert new_counts[card] >= 0
+        assert new_counts[card] >= 0, (card, new_counts[card])
         return Game(self.playerstates[:], new_counts, self.player_turn, self.simulated)
 
     def replace_states(self, newstates):
@@ -600,9 +604,11 @@ class Game(object):
         the game state where it is the next player's turn.
         """
         self.log.info("")
-        self.log.info("Round %d / player %d: %s" % (
-          (self.round + 1),
-          (self.player_turn+1), self.current_player().name
+        self.log.info("Round %d / player %d: %s (vp=%d)" % (
+            self.round + 1,
+            self.player_turn + 1,
+            self.current_player().name,
+            self.state().score(),
         ))
 
         self.log.info("%d provinces left" % self.card_counts[Province])
@@ -663,6 +669,16 @@ class Decision(object):
     def player(self):
         return self.game.current_player()
 
+class GainDecision(Decision):
+    def __init__(self, game, card: Optional[Card] = None):
+        super().__init__(game)
+        self.card = card
+
+    def choose(self, card):
+        return self.game.replace_current_state(
+            self.game.state().gain_cards((self.card,)),
+        )
+
 class MultiDecision(Decision):
     def __init__(self, game, minimum: int = 0, maximum: int = INF):
         self.min = minimum
@@ -699,7 +715,10 @@ class BuyDecision(Decision):
         return [None] + [card for card in self.game.card_choices() if card.cost <= value]
 
     def choose(self, card):
-        self.game.log.info("%s buys %s" % (self.player().name, card))
+        if card is not None:
+            assert card.cost <= self.coins(), 'This card is too expensive (cost={0}, coins={1})'.format(card.cost, self.coins())
+            assert self.game.card_counts[card] > 0, 'This card ({0}) has run out...'.format(card)
+        self.game.log.info("%s buys %s (coins=%d, buys=%d)" % (self.player().name, card, self.coins(), self.buys()))
         state = self.state()
         if card is None:
             newgame = self.game.change_current_state(
