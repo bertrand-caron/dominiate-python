@@ -1,5 +1,5 @@
 coverage:
-	coverage run test.py
+	coverage run test.py --profile
 	coverage html
 .PHONY: coverage
 

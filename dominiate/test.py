@@ -1,6 +1,9 @@
 from logging import DEBUG
 from random import shuffle
 from collections import defaultdict
+from argparse import ArgumentParser, Namespace
+from cProfile import runctx as profile_run
+from pstats import Stats
 
 from game import *
 from players import *
@@ -32,7 +35,27 @@ def test_game():
     results = game.run()
     return results
 
+def parse_args() -> Namespace:
+    parser = ArgumentParser()
+
+    parser.add_argument('--profile', action='store_true')
+
+    return parser.parse_args()
+
 if __name__ == '__main__':
+    args = parse_args()
+
+    if args.profile:
+        profile_file = '.profile'
+        profile_run(
+            'compare_bots([WitchBot(), MoatBot()], n=500)',
+            {},
+            dict(compare_bots=compare_bots, WitchBot=WitchBot, MoatBot=MoatBot),
+            filename=profile_file,
+        )
+        stats = Stats(profile_file).sort_stats('cumtime')
+        stats.print_stats()
+
     print(compare_bots([WitchBot(), SmithyBot()], n=5))
     print(compare_bots([MoatBot(), SmithyBot()], n=5))
     print(compare_bots([MoatBot(), WitchBot()], n=5))
