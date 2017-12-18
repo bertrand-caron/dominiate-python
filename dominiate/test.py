@@ -4,6 +4,8 @@ from collections import defaultdict
 from argparse import ArgumentParser, Namespace
 from cProfile import runctx as profile_run
 from pstats import Stats
+from os import devnull
+from contextlib import redirect_stdout
 
 from game import *
 from players import *
@@ -47,12 +49,14 @@ if __name__ == '__main__':
 
     if args.profile:
         profile_file = '.profile'
-        profile_run(
-            'compare_bots([WitchBot(), MoatBot()], n=500)',
-            {},
-            dict(compare_bots=compare_bots, WitchBot=WitchBot, MoatBot=MoatBot),
-            filename=profile_file,
-        )
+        with open(devnull, 'w') as null:
+            with redirect_stdout(null):
+                profile_run(
+                    'compare_bots([WitchBot(), MoatBot()], n=10)',
+                    {},
+                    dict(compare_bots=compare_bots, WitchBot=WitchBot, MoatBot=MoatBot),
+                    filename=profile_file,
+                )
         stats = Stats(profile_file).sort_stats('cumtime')
         stats.print_stats()
 
