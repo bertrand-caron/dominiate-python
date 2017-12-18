@@ -28,16 +28,24 @@ class Terminal_Draw_Big_Money(BigMoney):
 
         potential_draw = sum(state.all_cards().count(card) * (DEFAULT_HAND_SIZE + card.cards) for card in self.terminal_draws)
         if potential_draw < state.deck_size():
-            choices = self.terminal_draws + choices
+            buy_more_draws = True
+            choices += self.terminal_draws
+        else:
+            buy_more_draws = False
+
+        sorted_choices = sorted(
+            filter(
+                lambda card: card.cost <= state.hand_value() and game.card_counts[card] > 0,
+                choices,
+            ),
+            key=lambda card: (
+                card not in self.terminal_draws if buy_more_draws else False,
+                -card.cost,
+            ),
+        )
 
         try:
-            return sorted(
-                filter(
-                    lambda card: card.cost <= state.hand_value() and game.card_counts[card] > 0,
-                    choices,
-                ),
-                key=lambda card: -card.cost,
-            )[0]
+            return sorted_choices[0]
         except IndexError:
             return None
 
