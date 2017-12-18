@@ -1,14 +1,15 @@
+from collections import defaultdict
+import random
+
 from game import *
 from players import *
 from basic_ai import *
 from combobot import *
 from cards import variable_cards
-from collections import defaultdict
-import random
 
 def compare_bots(bots):
     scores = defaultdict(int)
-    for i in xrange(50):
+    for i in range(50):
         random.shuffle(bots)
         game = Game.setup(bots, variable_cards)
         results = game.run()

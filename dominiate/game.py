@@ -298,7 +298,7 @@ class PlayerState(object):
         Simulate n hands with certain cards in them, yielding the number of
         coins and buys they end with.
         """
-        for i in xrange(n):
+        for i in range(n):
             # make sure there are cards to gain, even though we haven't
             # kept track of the real game state
             game = Game([self.simulation_state(cards)],
@@ -396,7 +396,7 @@ class Game(object):
         """
         List all the cards that can currently be bought.
         """
-        choices = [card for card, count in self.card_counts.items()
+        choices = [card for card, count in list(self.card_counts.items())
                    if count > 0]
         choices.sort()
         return choices
@@ -442,7 +442,7 @@ class Game(object):
         same way as change_current_state.
         """
         newgame = self.copy()
-        for i in xrange(self.num_players()):
+        for i in range(self.num_players()):
             if i == self.player_turn: continue
             newgame.playerstates[i] = newgame.playerstates[i].change(**changes)
         return newgame
@@ -456,7 +456,7 @@ class Game(object):
         the attack_with_decision method instead.
         """
         newgame = self.copy()
-        for i in xrange(self.num_players()):
+        for i in range(self.num_players()):
             if i == self.player_turn: continue
             newgame.playerstates[i] = func(newgame.playerstates[i])
         return newgame
@@ -586,7 +586,7 @@ class Game(object):
         "Returns True if the game is over."
         if self.card_counts[province] == 0: return True
         zeros = 0
-        for count in self.card_counts.values():
+        for count in list(self.card_counts.values()):
             if count == 0: zeros += 1
         if self.num_players() > 4: return (zeros >= 4)
         else: return (zeros >= 3)

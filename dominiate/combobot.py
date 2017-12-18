@@ -11,10 +11,11 @@
 # We're looking for strategies that gain more per turn than BigMoney would
 # after being run for the same number of turns.
 
+import numpy as np
+
 from basic_ai import BigMoney
 from game import Game
 import cards as c
-import numpy as np
 
 def deck_value(deck):
     return sum([card.cost for card in deck]) - len(deck)
@@ -22,9 +23,9 @@ def deck_value(deck):
 def big_money_baseline():
     improvements = np.zeros((30,))
     counts = np.zeros((30,), dtype='int32')
-    for iteration in xrange(10000):
+    for iteration in range(10000):
         game = Game.setup([BigMoney(1, 2)])
-        for turn in xrange(30):
+        for turn in range(30):
             before_value = deck_value(game.state().all_cards())
             game = game.take_turn()
             after_value = deck_value(game.state().all_cards())
@@ -33,8 +34,8 @@ def big_money_baseline():
             counts[turn] += 1
             if game.over(): break
         avg = [imp/count for imp, count in zip(improvements, counts)]
-        print avg
-        print counts
+        print(avg)
+        print(counts)
     return avg
 
 # precalculated; easier than loading a pickle or something
@@ -90,7 +91,7 @@ class IdealistComboBot(BigMoney):
     def test(self):
         improvements = np.zeros((30,))
         counts = np.zeros((30,), dtype='int32')
-        for iteration in xrange(100):
+        for iteration in range(100):
             game = Game.setup([self], c.variable_cards, simulated=False)
             turn_count = 0
             # Find a state where the strategy is done and the deck is
@@ -102,7 +103,7 @@ class IdealistComboBot(BigMoney):
                 turn_count += 1
                 assert game.round == turn_count
             if turn_count <= 18:
-                for trial in xrange(10):
+                for trial in range(10):
                     # take one more turn to shuffle the deck
                     game1 = game.take_turn()
                     # test the next turn

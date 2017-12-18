@@ -1,7 +1,9 @@
+import logging
+import sys
+
 from game import TrashDecision, DiscardDecision
 from players import AIPlayer, BigMoney
 import cards as c
-import logging, sys
 
 class SmithyBot(BigMoney):
     def __init__(self, cutoff1=3, cutoff2=6, cards_per_smithy=8):
