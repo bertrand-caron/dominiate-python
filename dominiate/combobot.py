@@ -78,9 +78,9 @@ class IdealistComboBot(BigMoney):
         self.strategy_on = bool(priority)
         self.strategy_complete = not (priority or pending)
 
-    def buy_priority_order(self, decision):
+    def buy_priority_order(self, game, decision):
         if self.strategy_complete:
-            return BigMoney.buy_priority_order(self, decision)
+            return BigMoney.buy_priority_order(self, game, decision)
         else:
             return [None, Silver, Gold, Province] + self.strategy_priority
 
@@ -122,9 +122,9 @@ class IdealistComboBot(BigMoney):
         return overall
 
 class ComboBot(IdealistComboBot):
-    def buy_priority_order(self, decision):
+    def buy_priority_order(self, game, decision):
         if self.strategy_complete:
-            return BigMoney.buy_priority_order(self, decision)
+            return BigMoney.buy_priority_order(self, game, decision)
         else:
             return [None, Silver] + self.strategy_priority + [Gold, Province]
 

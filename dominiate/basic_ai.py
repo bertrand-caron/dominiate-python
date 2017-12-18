@@ -6,52 +6,21 @@ from game import TrashDecision, DiscardDecision, DEFAULT_HAND_SIZE
 from players import AIPlayer, BigMoney
 from cards import Card, Copper, Estate, Silver, Duchy, Province, Gold, Smithy, Witch
 
-class SmithyBot(BigMoney):
-    def __init__(self, cutoff1: int = 3, cutoff2: int = 6):
-        self.cards_per_smithy = DEFAULT_HAND_SIZE + Smithy.cards
-        self.name = 'SmithyBot(%d, %d)' % (cutoff1, cutoff2)
-        BigMoney.__init__(self, cutoff1, cutoff2)
-
-    def num_smithies(self, state) -> int:
-        return list(state.all_cards()).count(Smithy)
-
-    def buy_priority_order(self, decision) -> List[Card]:
-        state = decision.state()
-        provinces_left = decision.game.card_counts[Province]
-        if provinces_left <= self.cutoff1:
-            order = [Estate, Silver, Duchy, Province]
-        elif provinces_left <= self.cutoff2:
-            order = [Silver, Smithy, Duchy, Gold, Province]
-        else:
-            order = [Silver, Smithy, Gold, Province]
-        if ((self.num_smithies(state) + 1) * self.cards_per_smithy > state.deck_size()) and (Smithy in order):
-            order.remove(Smithy)
-
-        try:
-            return sorted(
-                filter(
-                    lambda card: card.cost <= state.hand_value(),
-                    order,
-                ),
-                key=lambda card: -card.cost,
-            )[0]
-        except IndexError:
-            return None
-
-    def make_act_decision(self, decision):
-        return Smithy
-
-class WitchBot(BigMoney):
-    def __init__(self, cutoff1: int = 3, cutoff2: int = 6):
-        self.terminal_draws = [Witch]
-        self.name = 'WitchBot(%d, %d)' % (cutoff1, cutoff2)
-        BigMoney.__init__(self, cutoff1, cutoff2)
+class Terminal_Draw_Big_Money(BigMoney):
+    def __init__(self, terminal_draws: List[Card] = [], cutoff1: int = 3, cutoff2: int = 6):
+        super().__init__(cutoff1, cutoff2)
+        self.terminal_draws = terminal_draws
+        self.name = '{0}Bot(cutoff1={1}, cutoff2={2})'.format(
+            ''.join([card.name.title() for card in self.terminal_draws]),
+            cutoff1,
+            cutoff2,
+        )
 
     def num_terminal_draws(self, state) -> int:
         all_cards = state.all_cards()
         return sum(all_cards.count(cards) for card in self.terminal_draws)
 
-    def buy_priority_order(self, decision) -> List[Card]:
+    def buy_priority_order(self, game, decision) -> List[Card]:
         state = decision.state()
         provinces_left = decision.game.card_counts[Province]
         if provinces_left <= self.cutoff1:
@@ -68,7 +37,7 @@ class WitchBot(BigMoney):
         try:
             return sorted(
                 filter(
-                    lambda card: card.cost <= state.hand_value(),
+                    lambda card: card.cost <= state.hand_value() and game.card_counts[card] > 0,
                     choices,
                 ),
                 key=lambda card: -card.cost,
@@ -81,6 +50,24 @@ class WitchBot(BigMoney):
             return [card for card in decision.state().all_cards() if card in self.terminal_draws][0]
         except IndexError:
             return None
+
+SmithyBot = lambda cutoff1= 3, cutoff2=6: Terminal_Draw_Big_Money(
+    terminal_draws=[Smithy],
+    cutoff1=cutoff1,
+    cutoff2=cutoff2,
+)
+
+WitchBot = lambda cutoff1=3, cutoff2=6: Terminal_Draw_Big_Money(
+    terminal_draws=[Witch],
+    cutoff1=cutoff1,
+    cutoff2=cutoff2,
+)
+
+MoatBot = lambda cutoff1=3, cutoff2=6: Terminal_Draw_Big_Money(
+    terminal_draws=[Moat],
+    cutoff1=cutoff1,
+    cutoff2=cutoff2,
+)
 
 class HillClimbBot(BigMoney):
     def __init__(self, cutoff1=2, cutoff2=3, simulation_steps=100):

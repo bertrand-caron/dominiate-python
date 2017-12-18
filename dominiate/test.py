@@ -33,7 +33,7 @@ def test_game():
     return results
 
 if __name__ == '__main__':
-    compare_bots([WitchBot(), SmithyBot()], n=1)
+    print(compare_bots([WitchBot(), SmithyBot()], n=5))
     #test_game()
     #compare_bots([BigMoney(), SmithyBot(), HillClimbBot(2, 3, 40)])
     #compare_bots([smithyComboBot, chapelComboBot, HillClimbBot(2, 3, 40)])

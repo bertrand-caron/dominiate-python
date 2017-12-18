@@ -223,7 +223,7 @@ class PlayerState(object):
 
     def gain_cards(self, cards):
         "Gain multiple cards."
-        print('Player {0} gains {1}'.format(self.player, cards))
+        print('Player {0} gains {1}'.format(self.player, ','.join(map(str, cards))))
         return PlayerState(
             self.player,
             self.hand,
@@ -527,7 +527,7 @@ class Game(object):
                     newgame = reaction(newgame)
             decision = decision_template(newgame)
             turn = newgame.player_turn
-            game2 = newgame.current_player().make_decision(decision)
+            game2 = newgame.current_player().make_decision(self, decision)
             assert game2.player_turn == turn
             newgame = game2.next_mini_turn()
         return newgame
@@ -546,7 +546,7 @@ class Game(object):
             return self
         else:
             decision = decisiontype(self)
-            newgame = self.current_player().make_decision(decision)
+            newgame = self.current_player().make_decision(self, decision)
             return newgame.run_decisions()
 
     def simulated_copy(self):

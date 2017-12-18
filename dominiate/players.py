@@ -88,9 +88,8 @@ class HumanPlayer(Player):
                 print("You can't choose the same thing twice.")
                 return self.make_multi_decision(decision)
 
-    def substitute_ai(self):
-        return BigMoney()
-
+    def substitute_ai(self, game):
+        return BigMoney(game)
 
 class AIPlayer(Player):
     def __init__(self):
@@ -99,10 +98,10 @@ class AIPlayer(Player):
     def setLogLevel(self, level):
         self.log.setLevel(level)
 
-    def make_decision(self, decision):
+    def make_decision(self, game, decision):
         self.log.debug("Decision: %s" % decision)
         if isinstance(decision, BuyDecision):
-            choice = self.make_buy_decision(decision)
+            choice = self.make_buy_decision(game, decision)
         elif isinstance(decision, ActDecision):
             choice = self.make_act_decision(decision)
         elif isinstance(decision, DiscardDecision):
@@ -128,7 +127,7 @@ class BigMoney(AIPlayer):
             self.name = 'BigMoney(%d, %d)' % (self.cutoff1, self.cutoff2)
         AIPlayer.__init__(self)
 
-    def buy_priority_order(self, decision):
+    def buy_priority_order(self, game, decision):
         """
         Provide a buy_priority by ordering the cards from least to most
         important.
@@ -141,11 +140,11 @@ class BigMoney(AIPlayer):
         else:
             return [None, Silver, Gold, Province]
 
-    def make_buy_decision(self, decision) -> Optional[Card]:
+    def make_buy_decision(self, game, decision) -> Optional[Card]:
         """
         Choose a card to buy.
         """
-        return self.buy_priority_order(decision)
+        return self.buy_priority_order(game, decision)
 
     def act_priority(self, decision, choice):
         """
