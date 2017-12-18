@@ -719,7 +719,15 @@ class BuyDecision(Decision):
         if card is not None:
             assert card.cost <= self.coins(), 'This card is too expensive (cost={0}, coins={1})'.format(card.cost, self.coins())
             assert self.game.card_counts[card] > 0, 'This card ({0}) has run out...'.format(card)
-        self.game.log.info("%s buys %s (coins=%d, buys=%d)" % (self.player().name, card, self.coins(), self.buys()))
+        self.game.log.info(
+            "{player} buys {cards} (coins={coins}, buys={buys}, hand={hand})".format(
+                player=self.player().name,
+                cards=card,
+                coins=self.coins(),
+                buys=self.buys(),
+                hand=self.state().hand,
+            ),
+        )
         state = self.state()
         if card is None:
             newgame = self.game.change_current_state(
