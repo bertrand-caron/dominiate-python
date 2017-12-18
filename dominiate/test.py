@@ -6,13 +6,13 @@ from game import *
 from players import *
 from basic_ai import *
 from combobot import *
-from cards import variable_cards
+from cards import BASE_ACTIONS
 
 def compare_bots(bots, n: int = 2):
     scores = defaultdict(int)
     for i in range(n):
         shuffle(bots)
-        game = Game.setup(bots, variable_cards)
+        game = Game.setup(bots, BASE_ACTIONS)
         results = game.run()
         maxscore = 0
         for (bot, score) in results:
@@ -28,7 +28,7 @@ def test_game():
     player1 = BigMoney()
     player2 = BigMoney()
     #player2.setLogLevel(DEBUG)
-    game = Game.setup([player1, player2], variable_cards)
+    game = Game.setup([player1, player2], BASE_ACTIONS)
     results = game.run()
     return results
 

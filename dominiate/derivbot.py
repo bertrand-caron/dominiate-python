@@ -1,8 +1,9 @@
 from collections import defaultdict
-from .game import BuyDecision, ActDecision, Game
-from .players import Player
-from .basic_ai import HillClimbBot
-from . import cards as c
+
+from game import BuyDecision, ActDecision, Game
+from players import Player
+from basic_ai import HillClimbBot
+from cards import Province
 
 class DerivBot(HillClimbBot):
     """
@@ -45,12 +46,12 @@ class DerivBot(HillClimbBot):
                              game.card_counts, 0, simulated=True)
                 state = game.simulate_partial_turn()
                 hand = state.tableau + state.hand
-                
+
                 # How much is the hand worth without changing anything?
                 actual_value = 0
                 for coins, buys in state.simulate_hands(1, hand):
                     actual_value = self.buy_value(coins, buys, prev_order)
-                if coins >= 8:
+                if coins >= Province.cost:
                     avg_provinces += 1.0 / self.k / 2
 
                 n = len(hand)
@@ -65,10 +66,10 @@ class DerivBot(HillClimbBot):
                             value = self.buy_value(coins, buys, prev_order) - actual_value
                             self.values[deriv][card] += float(value) / self.k / n
                 # TODO: take into account cards you gain/trash
-        
+
         # turns_left = provinces_left / (provinces/turn)
         if avg_provinces == 0.0: avg_provinces = 0.1
-        turns_left_in_game = (game.card_counts[c.province] /
+        turns_left_in_game = (game.card_counts[Province] /
           ((avg_provinces+0.5) * game.num_players()))
         print("Estimated turns left:", turns_left_in_game)
 
@@ -79,7 +80,7 @@ class DerivBot(HillClimbBot):
         # compensate for cards in deck
         reshuffles_left -= \
           float(len(game.state().drawpile)) / game.state().deck_size()
-        
+
         factors = [1.0, 0.0, 0.0]
         factors[1] = max(reshuffles_left, 0)
         factors[2] = max(reshuffles_left * (reshuffles_left-1)/2, 0)
@@ -95,18 +96,18 @@ class DerivBot(HillClimbBot):
                   (self.averages[order][card] * self.samples) +
                   self.values[order][card]
                 ) / (self.samples + 1.0)
-            
+
             totalvalue = 0.0
             for value, factor in zip(weighted_values, factors):
                 totalvalue += value*factor
-            if card == c.province:
+            if card == Province:
                 # Provinces are better than this calculation would imply.
                 # When you have a province, someone else doesn't have it.
                 # So add another 12 for good measure.
                 totalvalue += 12.0
             self.current_values[card] = totalvalue
             print("%12s: % 7.3f % 7.3f % 7.3f  % 7.3f % 7.3f % 7.3f % 7.3f" %\
-              (card, self.values[0][card], self.values[1][card], 
+              (card, self.values[0][card], self.values[1][card],
                self.values[2][card], self.averages[0][card],
                self.averages[1][card], self.averages[2][card], totalvalue))
         self.samples += 1
@@ -114,7 +115,7 @@ class DerivBot(HillClimbBot):
     def buy_priority(self, decision, card):
         if card is None: return 0.0
         else: return self.current_values[card]
-    
+
     def make_buy_decision(self, decision):
         print("BuyDecision (%d coins): hand is %s" % (
           decision.state().hand_value(), decision.state().hand

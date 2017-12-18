@@ -1,8 +1,8 @@
 # Thoughts on a combo bot:
-# 
+#
 # It should probably run the BigMoney strategy by default; it will not work
 # for minimalist (Chapel) or maximalist (Garden) strategies.
-# 
+#
 # A ComboBot aims to get a certain set of cards. It pays an opportunity cost
 # in the number of turns it could have been running BigMoney. How do we compare
 # this? I think in the average value of cards it gains per turn, plus possibly
@@ -12,12 +12,13 @@
 # after being run for the same number of turns.
 
 import numpy as np
+import logging
 
 from basic_ai import BigMoney
 from game import Game
-import cards as c
+from cards import BASE_ACTIONS, Laboratory, Chapel, Smithy, Silver, Gold, Province, Market, Festival
 
-def deck_value(deck):
+def deck_value(deck) -> int:
     return sum([card.cost for card in deck]) - len(deck)
 
 def big_money_baseline():
@@ -55,7 +56,7 @@ class IdealistComboBot(BigMoney):
         else:
             self.name = name
         BigMoney.__init__(self, 1, 2)
-    
+
     def before_turn(self, game):
         current_cards = game.state().all_cards()
         priority = []
@@ -76,28 +77,28 @@ class IdealistComboBot(BigMoney):
         self.log.debug('Strategy: %s' % self.strategy_priority)
         self.strategy_on = bool(priority)
         self.strategy_complete = not (priority or pending)
-    
+
     def buy_priority_order(self, decision):
         if self.strategy_complete:
             return BigMoney.buy_priority_order(self, decision)
         else:
-            return [None, c.silver, c.gold, c.province] + self.strategy_priority
+            return [None, Silver, Gold, Province] + self.strategy_priority
 
     def make_buy_decision(self, decision):
         choices = decision.choices()
         choices.sort(key=lambda x: self.buy_priority(decision, x))
         return choices[-1]
-    
+
     def test(self):
         improvements = np.zeros((30,))
         counts = np.zeros((30,), dtype='int32')
         for iteration in range(100):
-            game = Game.setup([self], c.variable_cards, simulated=False)
+            game = Game.setup([self], BASE_ACTIONS, simulated=False)
             turn_count = 0
             # Find a state where the strategy is done and the deck is
             # about to be shuffled
-            while not (game.card_counts[c.province] <= 1 or
-                       (game.current_player().strategy_complete and 
+            while not (game.card_counts[Province] <= 1 or
+                       (game.current_player().strategy_complete and
                         len(game.state().drawpile) < 5)):
                 game = game.take_turn()
                 turn_count += 1
@@ -125,20 +126,19 @@ class ComboBot(IdealistComboBot):
         if self.strategy_complete:
             return BigMoney.buy_priority_order(self, decision)
         else:
-            return [None, c.silver] + self.strategy_priority + [c.gold, c.province]
+            return [None, Silver] + self.strategy_priority + [Gold, Province]
 
 
-smithyComboBot = ComboBot([(c.smithy, 2), (c.smithy, 6)],
-                   name='smithyComboBot')
+smithyComboBot = ComboBot([(Smithy, 2), (Smithy, 6)], name='smithyComboBot')
 
-chapelComboBot = ComboBot([(c.chapel, 0),
-                           (c.laboratory, 0),
-                           (c.laboratory, 0),
-                           (c.laboratory, 0),
-                           (c.market, 0),
+chapelComboBot = ComboBot([(Chapel, 0),
+                           (Laboratory, 0),
+                           (Laboratory, 0),
+                           (Laboratory, 0),
+                           (Market, 0),
                           ], name='chapelComboBot')
-chapelComboBot2 = ComboBot([(c.chapel, 0), (c.smithy, 2), (c.smithy, 6),
-                            (c.festival, 0), (c.festival, 4)],
+chapelComboBot2 = ComboBot([(Chapel, 0), (Smithy, 2), (Smithy, 6),
+                            (Festival, 0), (Festival, 4)],
                    name='chapelComboBot2')
 
 if __name__ == '__main__':

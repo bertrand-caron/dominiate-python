@@ -95,22 +95,23 @@ class Card(object):
         return self.name
 
 # define the cards that are in every game
-curse    = Card('Curse', 0, vp=-1)
-estate   = Card('Estate', 2, vp=1)
-duchy    = Card('Duchy', 5, vp=3)
-province = Card('Province', 8, vp=6)
+Curse    = Card('Curse', 0, vp=-1)
+Estate   = Card('Estate', 2, vp=1)
+Duchy    = Card('Duchy', 5, vp=3)
+Province = Card('Province', 8, vp=6)
 
-copper = Card('Copper', 0, treasure=1)
-silver = Card('Silver', 3, treasure=2)
-gold   = Card('Gold', 6, treasure=3)
+Copper = Card('Copper', 0, treasure=1)
+Silver = Card('Silver', 3, treasure=2)
+Gold   = Card('Gold', 6, treasure=3)
+
+STARTING_HAND = (Copper,)*7 + (Estate,)*3
 
 class PlayerState(object):
     """
     A PlayerState represents all the game state that is particular to a player,
     including the number of actions, buys, and +coins they have.
     """
-    def __init__(self, player, hand, drawpile, discard, tableau, actions=0,
-                 buys=0, coins=0):
+    def __init__(self, player, hand, drawpile, discard, tableau, actions: int = 0, buys: int = 0, coins: int = 0) -> None:
         self.player = player
         self.actions = actions;   assert isinstance(self.actions, int)
         self.buys = buys;         assert isinstance(self.buys, int)
@@ -124,10 +125,15 @@ class PlayerState(object):
     @staticmethod
     def initial_state(player):
         # put it all in the discard pile so it auto-shuffles, then draw
-        return PlayerState(player, hand=(), drawpile=(),
-        discard=(copper,)*7 + (estate,)*3, tableau=()).next_turn()
+        return PlayerState(
+            player,
+            hand=(),
+            drawpile=(),
+            discard=STARTING_HAND,
+            tableau=(),
+        ).next_turn()
 
-    def change(self, delta_actions=0, delta_buys=0, delta_cards=0, delta_coins=0):
+    def change(self, delta_actions: int = 0, delta_buys: int = 0, delta_cards: int = 0, delta_coins: int = 0):
         """
         Change the number of actions, buys, cards, or coins available on this
         turn.
@@ -138,7 +144,8 @@ class PlayerState(object):
         assert delta_cards >= 0
         if delta_cards > 0:
             return state.draw(delta_cards)
-        else: return state
+        else:
+            return state
 
     def deck_size(self) -> int:
         return len(self.all_cards())
@@ -146,10 +153,10 @@ class PlayerState(object):
     def __len__(self) -> int:
         return self.deck_size()
 
-    def all_cards(self):
+    def all_cards(self) -> List[Card]:
         return self.hand + self.tableau + self.drawpile + self.discard
 
-    def hand_value(self):
+    def hand_value(self) -> int:
         """How many coins can the player spend?"""
         return self.coins + sum(card.treasure for card in self.hand)
 
@@ -203,15 +210,27 @@ class PlayerState(object):
     def gain(self, card):
         "Gain a single card."
         return PlayerState(
-          self.player, self.hand, self.drawpile, self.discard+(card,),
-          self.tableau, self.actions, self.buys, self.coins
+            self.player,
+            self.hand,
+            self.drawpile,
+            self.discard + (card,),
+            self.tableau,
+            self.actions,
+            self.buys,
+            self.coins
         )
 
     def gain_cards(self, cards):
         "Gain multiple cards."
         return PlayerState(
-          self.player, self.hand, self.drawpile, self.discard+cards,
-          self.tableau, self.actions, self.buys, self.coins
+            self.player,
+            self.hand,
+            self.drawpile,
+            self.discard + cards,
+            self.tableau,
+            self.actions,
+            self.buys,
+            self.coins,
         )
 
     def play_card(self, card):
@@ -225,8 +244,8 @@ class PlayerState(object):
         index = list(self.hand).index(card)
         newhand = self.hand[:index] + self.hand[index+1:]
         result = PlayerState(
-          self.player, newhand, self.drawpile, self.discard,
-          self.tableau+(card,), self.actions, self.buys, self.coins
+            self.player, newhand, self.drawpile, self.discard,
+            self.tableau+(card,), self.actions, self.buys, self.coins
         )
         assert len(self) == len(result)
         return result
@@ -282,9 +301,10 @@ class PlayerState(object):
             return ActDecision
         elif self.buyable():
             return BuyDecision
-        else: return None
+        else:
+            return None
 
-    def score(self):
+    def score(self) -> int:
         """How many points is this deck worth?"""
         return sum(card.vp for card in self.all_cards())
 
@@ -316,10 +336,10 @@ class PlayerState(object):
         for i in range(n):
             # make sure there are cards to gain, even though we haven't
             # kept track of the real game state
-            game = Game([self.simulation_state(cards)],
-                        {province: 12, duchy: 12, estate: 12,
-                         copper: 12, silver: 12, gold: 12},
-                        simulated=True
+            game = Game(
+                [self.simulation_state(cards)],
+                {Province: 12, Duchy: 12, Estate: 12, Copper: 12, Silver: 12, Gold: 12},
+                simulated=True,
             )
             coins, buys = game.simulate_turn()
             yield coins, buys
@@ -360,12 +380,12 @@ class Game(object):
     def setup(players, var_cards=(), simulated=False):
         "Set up the game."
         counts = {
-            estate: VICTORY_CARDS[len(players)],
-            duchy: VICTORY_CARDS[len(players)],
-            province: VICTORY_CARDS[len(players)],
-            copper: 60 - 7*len(players),
-            silver: 40,
-            gold: 30
+            Estate: VICTORY_CARDS[len(players)],
+            Duchy: VICTORY_CARDS[len(players)],
+            Province: VICTORY_CARDS[len(players)],
+            Copper: 60 - 7 * len(players),
+            Silver: 40,
+            Gold: 30
         }
         for card in var_cards:
             counts[card] = 10
@@ -404,7 +424,7 @@ class Game(object):
     def current_player(self):
         return self.state().player
 
-    def num_players(self):
+    def num_players(self) -> int:
         return len(self.playerstates)
 
     def card_choices(self) -> List[Card]:
@@ -518,10 +538,12 @@ class Game(object):
         """
         state = self.state()
         decisiontype = state.next_decision()
-        if decisiontype is None: return self
-        decision = decisiontype(self)
-        newgame = self.current_player().make_decision(decision)
-        return newgame.run_decisions()
+        if decisiontype is None:
+            return self
+        else:
+            decision = decisiontype(self)
+            newgame = self.current_player().make_decision(decision)
+            return newgame.run_decisions()
 
     def simulated_copy(self):
         """
@@ -583,7 +605,7 @@ class Game(object):
           (self.player_turn+1), self.current_player().name
         ))
 
-        self.log.info("%d provinces left" % self.card_counts[province])
+        self.log.info("%d provinces left" % self.card_counts[Province])
 
         # Run AI hooks that need to happen before the turn.
         self.current_player().before_turn(self)
@@ -601,14 +623,19 @@ class Game(object):
         self.current_player().after_turn(newgame)
         return newgame
 
-    def over(self):
+    def over(self) -> bool:
         "Returns True if the game is over."
-        if self.card_counts[province] == 0: return True
-        zeros = 0
-        for count in list(self.card_counts.values()):
-            if count == 0: zeros += 1
-        if self.num_players() > 4: return (zeros >= 4)
-        else: return (zeros >= 3)
+        if self.card_counts[Province] == 0:
+            return True
+        else:
+            zeros = 0
+            for count in list(self.card_counts.values()):
+                if count == 0: zeros += 1
+
+            if self.num_players() > 4:
+                return (zeros >= 4)
+            else:
+                return (zeros >= 3)
 
     def run(self, max_rounds: int = 300):
         """

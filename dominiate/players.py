@@ -1,10 +1,11 @@
 import logging
 
 from game import Game, BuyDecision, ActDecision, TrashDecision, DiscardDecision, MultiDecision, INF
-import cards as c
+from cards import Copper, Silver, Gold, Curse, Estate, Duchy, Province
 
 class Player(object):
     def __init__(self, *args) -> None:
+        self.name = None
         raise NotImplementedError("Player is an abstract class")
 
     def make_decision(self, decision, state) -> None:
@@ -90,8 +91,10 @@ class HumanPlayer(Player):
 class AIPlayer(Player):
     def __init__(self):
         self.log = logging.getLogger(self.name)
+
     def setLogLevel(self, level):
         self.log.setLevel(level)
+
     def make_decision(self, decision):
         self.log.debug("Decision: %s" % decision)
         if isinstance(decision, BuyDecision):
@@ -124,13 +127,13 @@ class BigMoney(AIPlayer):
         Provide a buy_priority by ordering the cards from least to most
         important.
         """
-        provinces_left = decision.game.card_counts[c.province]
+        provinces_left = decision.game.card_counts[Province]
         if provinces_left <= self.cutoff1:
-            return [None, c.estate, c.silver, c.duchy, c.province]
+            return [None, Estate, Silver, Duchy, Province]
         elif provinces_left <= self.cutoff2:
-            return [None, c.silver, c.duchy, c.gold, c.province]
+            return [None, Silver, Duchy, Gold, Province]
         else:
-            return [None, c.silver, c.gold, c.province]
+            return [None, Silver, Gold, Province]
 
     def buy_priority(self, decision, card):
         """
@@ -157,9 +160,10 @@ class BigMoney(AIPlayer):
         Assign a numerical priority to each action. Higher priority actions
         will be chosen first.
         """
-        if choice is None: return 0
-        return (100*choice.actions + 10*(choice.coins + choice.cards) +
-                    choice.buys) + 1
+        if choice is None:
+            return 0
+        else:
+            return (100 * choice.actions + 10 * (choice.coins + choice.cards) + choice.buys) + 1
 
     def make_act_decision(self, decision):
         """
@@ -176,14 +180,14 @@ class BigMoney(AIPlayer):
         "Choose a single card to trash."
         deck = decision.state().all_cards()
         money = sum([card.treasure + card.coins for card in deck])
-        if c.curse in choices:
-            return c.curse
-        elif c.copper in choices and money > 3:
-            return c.copper
-        elif decision.game.round < 10 and c.estate in choices:
+        if Curse in choices:
+            return Curse
+        elif Copper in choices and money > 3:
+            return Copper
+        elif decision.game.round < 10 and Estate in choices:
             # TODO: judge how many turns are left in the game and whether
-            # an estate is worth it
-            return c.estate
+            # an Estate is worth it
+            return Estate
         elif allow_none:
             return None
         else:
@@ -223,8 +227,8 @@ class BigMoney(AIPlayer):
             return actions_sorted[0]
         elif len(victory_cards):
             return victory_cards[0]
-        elif c.copper in choices:
-            return c.copper
+        elif Copper in choices:
+            return Copper
         elif allow_none:
             return None
         else:
