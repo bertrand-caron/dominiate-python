@@ -94,6 +94,7 @@ class HumanPlayer(Player):
 class AIPlayer(Player):
     def __init__(self):
         self.log = logging.getLogger(self.name)
+        self.setLogLevel(logging.INFO)
 
     def setLogLevel(self, level):
         self.log.setLevel(level)

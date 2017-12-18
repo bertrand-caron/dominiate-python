@@ -4,7 +4,7 @@ from typing import List
 
 from game import TrashDecision, DiscardDecision, DEFAULT_HAND_SIZE
 from players import AIPlayer, BigMoney
-from cards import Card, Copper, Estate, Silver, Duchy, Province, Gold, Smithy, Witch
+from cards import Card, Copper, Estate, Silver, Duchy, Province, Gold, Smithy, Witch, Moat
 
 class Terminal_Draw_Big_Money(BigMoney):
     def __init__(self, terminal_draws: List[Card] = [], cutoff1: int = 3, cutoff2: int = 6):
@@ -16,23 +16,19 @@ class Terminal_Draw_Big_Money(BigMoney):
             cutoff2,
         )
 
-    def num_terminal_draws(self, state) -> int:
-        all_cards = state.all_cards()
-        return sum(all_cards.count(cards) for card in self.terminal_draws)
-
     def buy_priority_order(self, game, decision) -> List[Card]:
         state = decision.state()
         provinces_left = decision.game.card_counts[Province]
         if provinces_left <= self.cutoff1:
             choices = [Estate, Silver, Duchy, Province]
         elif provinces_left <= self.cutoff2:
-            choices = [Silver] + self.terminal_draws + [Duchy, Gold, Province]
+            choices = [Silver, Duchy, Gold, Province]
         else:
-            choices = [Silver] + self.terminal_draws + [Gold, Province]
+            choices = [Silver, Gold, Province]
 
         potential_draw = sum(state.all_cards().count(card) * (DEFAULT_HAND_SIZE + card.cards) for card in self.terminal_draws)
-        if potential_draw > state.deck_size():
-            [choices.remove(card) for card in self.terminal_draws if card in choices]
+        if potential_draw < state.deck_size():
+            choices = self.terminal_draws + choices
 
         try:
             return sorted(

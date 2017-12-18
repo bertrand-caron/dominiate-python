@@ -4,7 +4,7 @@ from typing import List, Optional
 from sys import maxsize
 
 mainLog = logging.getLogger(__name__)
-logging.basicConfig(level=logging.WARN)
+logging.basicConfig(level=logging.WARN, format='%(levelname)s: %(message)s')
 
 INF = maxsize
 
@@ -223,7 +223,7 @@ class PlayerState(object):
 
     def gain_cards(self, cards):
         "Gain multiple cards."
-        print('Player {0} gains {1}'.format(self.player, ','.join(map(str, cards))))
+        self.player.log.info('Player {0} gains {1}'.format(self.player, ','.join(map(str, cards))))
         return PlayerState(
             self.player,
             self.hand,
@@ -520,6 +520,7 @@ class Game(object):
         while newgame.player_turn != self.player_turn:
             if attack:
                 if newgame.state().is_defended():
+                    self.log.info('Player {0} is defended'.format(newgame.state().player))
                     newgame = newgame.next_mini_turn()
                     continue
                 reactions = newgame.state().get_reactions()
