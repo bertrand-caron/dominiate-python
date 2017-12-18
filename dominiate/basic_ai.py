@@ -8,10 +8,9 @@ import cards as c
 class SmithyBot(BigMoney):
     def __init__(self, cutoff1=3, cutoff2=6, cards_per_smithy=8):
         self.cards_per_smithy = 8
-        self.name = 'SmithyBot(%d, %d, %d)' % (cutoff1, cutoff2,
-        cards_per_smithy)
+        self.name = 'SmithyBot(%d, %d, %d)' % (cutoff1, cutoff2, cards_per_smithy)
         BigMoney.__init__(self, cutoff1, cutoff2)
-    
+
     def num_smithies(self, state):
         return list(state.all_cards()).count(c.smithy)
 
@@ -49,24 +48,27 @@ class HillClimbBot(BigMoney):
             total += buying_value(coins, buys)
 
         # gold is better than it seems
-        if card == c.gold: total += self.simulation_steps/2
+        if card == c.gold:
+            total += self.simulation_steps / 2
         self.log.debug("%s: %s" % (card, total))
         return total
-    
+
     def make_buy_decision(self, decision):
         choices = decision.choices()
         provinces_left = decision.game.card_counts[c.province]
-        
-        if c.province in choices: return c.province
+
+        if c.province in choices:
+            return c.province
         if c.duchy in choices and provinces_left <= self.cutoff2:
             return c.duchy
         if c.estate in choices and provinces_left <= self.cutoff1:
             return c.estate
         return BigMoney.make_buy_decision(self, decision)
 
-def buying_value(coins, buys):
-    if coins > buys*8: coins = buys*8
-    if (coins - (buys-1)*8) in (1, 7):  # there exists a useless coin
+def buying_value(coins: int, buys: int) -> int:
+    if coins > buys * 8:
+        coins = buys * 8
+    if (coins - (buys-1) * 8) in (1, 7):  # there exists a useless coin
         coins -= 1
     return coins
 

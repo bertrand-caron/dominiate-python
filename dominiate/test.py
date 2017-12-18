@@ -8,9 +8,9 @@ from basic_ai import *
 from combobot import *
 from cards import variable_cards
 
-def compare_bots(bots):
+def compare_bots(bots, n: int = 2):
     scores = defaultdict(int)
-    for i in range(50):
+    for i in range(n):
         shuffle(bots)
         game = Game.setup(bots, variable_cards)
         results = game.run()
@@ -34,4 +34,5 @@ def test_game():
 
 if __name__ == '__main__':
     test_game()
-    compare_bots([smithyComboBot, chapelComboBot, HillClimbBot(2, 3, 40)])
+    compare_bots([BigMoney(), SmithyBot(), HillClimbBot(2, 3, 40)])
+    #compare_bots([smithyComboBot, chapelComboBot, HillClimbBot(2, 3, 40)])

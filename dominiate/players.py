@@ -4,20 +4,26 @@ from game import Game, BuyDecision, ActDecision, TrashDecision, DiscardDecision,
 import cards as c
 
 class Player(object):
-    def __init__(self, *args):
+    def __init__(self, *args) -> None:
         raise NotImplementedError("Player is an abstract class")
-    def make_decision(self, decision, state):
+
+    def make_decision(self, decision, state) -> None:
         assert state.player is self
         raise NotImplementedError
-    def make_multi_decision(self, decision, state):
+
+    def make_multi_decision(self, decision, state) -> None:
         raise NotImplementedError
-    def __str__(self):
+
+    def __str__(self) -> str:
         return self.name
-    def __repr__(self):
+
+    def __repr__(self) -> str:
         return "<Player: %s>" % self.name
-    def before_turn(self, game):
+
+    def before_turn(self, game) -> None:
         pass
-    def after_turn(self, game):
+
+    def after_turn(self, game) -> None:
         pass
 
 class HumanPlayer(Player):
@@ -76,7 +82,7 @@ class HumanPlayer(Player):
             if chosen.count(ch) > 1:
                 print("You can't choose the same thing twice.")
                 return self.make_multi_decision(decision)
-    
+
     def substitute_ai(self):
         return BigMoney()
 
@@ -112,7 +118,7 @@ class BigMoney(AIPlayer):
         if not hasattr(self, 'name'):
             self.name = 'BigMoney(%d, %d)' % (self.cutoff1, self.cutoff2)
         AIPlayer.__init__(self)
-    
+
     def buy_priority_order(self, decision):
         """
         Provide a buy_priority by ordering the cards from least to most
@@ -125,7 +131,7 @@ class BigMoney(AIPlayer):
             return [None, c.silver, c.duchy, c.gold, c.province]
         else:
             return [None, c.silver, c.gold, c.province]
-    
+
     def buy_priority(self, decision, card):
         """
         Assign a numerical priority to each card that can be bought.
@@ -134,7 +140,7 @@ class BigMoney(AIPlayer):
             return self.buy_priority_order(decision).index(card)
         except ValueError:
             return -1
-    
+
     def make_buy_decision(self, decision):
         """
         Choose a card to buy.
@@ -145,7 +151,7 @@ class BigMoney(AIPlayer):
         choices = decision.choices()
         choices.sort(key=lambda x: self.buy_priority(decision, x))
         return choices[-1]
-    
+
     def act_priority(self, decision, choice):
         """
         Assign a numerical priority to each action. Higher priority actions
@@ -154,7 +160,7 @@ class BigMoney(AIPlayer):
         if choice is None: return 0
         return (100*choice.actions + 10*(choice.coins + choice.cards) +
                     choice.buys) + 1
-    
+
     def make_act_decision(self, decision):
         """
         Choose an Action to play.
@@ -165,7 +171,7 @@ class BigMoney(AIPlayer):
         choices = decision.choices()
         choices.sort(key=lambda x: self.act_priority(decision, x))
         return choices[-1]
-    
+
     def make_trash_decision_incremental(self, decision, choices, allow_none=True):
         "Choose a single card to trash."
         deck = decision.state().all_cards()
@@ -232,7 +238,7 @@ class BigMoney(AIPlayer):
         # of size decision.min to decision.max, and figuring out how well the
         # rest of your hand plays out (including things like the Cellar bonus).
 
-        # Start with 
+        # Start with
         #   game = decision.game().simulated_copy() ...
         # to avoid cheating.
 

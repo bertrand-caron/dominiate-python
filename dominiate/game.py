@@ -1,9 +1,12 @@
 import random
 import logging
+from typing import List, Optional
+from sys import maxsize
+
 mainLog = logging.getLogger(__name__)
 logging.basicConfig(level=logging.WARN)
 
-INF = ()
+INF = maxsize
 
 class Card(object):
     """
@@ -49,8 +52,15 @@ class Card(object):
         return self.treasure > 0
 
     def isAction(self):
-        return (self.coins or self.cards or self.actions or self.buys or
-                self.effect)
+        return any(
+            [
+                self.coins,
+                self.cards,
+                self.actions,
+                self.buys,
+                self.effect,
+            ]
+        )
 
     def isAttack(self):
         return self._isAttack
@@ -72,14 +82,17 @@ class Card(object):
             game = action(game)
         return game
 
-    def __str__(self): return self.name
-    def __cmp__(self, other):
-        if other is None: return -1
-        return cmp((self.cost, self.name), 
-                   (other.cost, other.name))
+    def __str__(self):
+        return self.name
+
+    def __lt__(self, other):
+        raise Exception('Cards can only be compared with an explicit context (e.g. trashing, buying)')
+
     def __hash__(self):
         return hash(self.name)
-    def __repr__(self): return self.name
+
+    def __repr__(self):
+        return self.name
 
 # define the cards that are in every game
 curse    = Card('Curse', 0, vp=-1)
@@ -107,13 +120,13 @@ class PlayerState(object):
         self.discard = discard;   assert isinstance(self.discard, tuple)
         self.tableau = tableau;   assert isinstance(self.tableau, tuple)
         # TODO: duration cards
-    
+
     @staticmethod
     def initial_state(player):
         # put it all in the discard pile so it auto-shuffles, then draw
         return PlayerState(player, hand=(), drawpile=(),
         discard=(copper,)*7 + (estate,)*3, tableau=()).next_turn()
-    
+
     def change(self, delta_actions=0, delta_buys=0, delta_cards=0, delta_coins=0):
         """
         Change the number of actions, buys, cards, or coins available on this
@@ -126,10 +139,12 @@ class PlayerState(object):
         if delta_cards > 0:
             return state.draw(delta_cards)
         else: return state
-    
-    def deck_size(self):
+
+    def deck_size(self) -> int:
         return len(self.all_cards())
-    __len__ = deck_size
+
+    def __len__(self) -> int:
+        return self.deck_size()
 
     def all_cards(self):
         return self.hand + self.tableau + self.drawpile + self.discard
@@ -138,12 +153,12 @@ class PlayerState(object):
         """How many coins can the player spend?"""
         return self.coins + sum(card.treasure for card in self.hand)
 
-    def hand_size(self):
+    def hand_size(self) -> int:
         return len(self.hand)
 
-    def is_defended(self):
+    def is_defended(self) -> bool:
         return any(x.isDefense() for x in self.hand)
-    
+
     def get_reactions(self):
         """
         TODO: implement complex reactions like Secret Chamber
@@ -191,7 +206,7 @@ class PlayerState(object):
           self.player, self.hand, self.drawpile, self.discard+(card,),
           self.tableau, self.actions, self.buys, self.coins
         )
-    
+
     def gain_cards(self, cards):
         "Gain multiple cards."
         return PlayerState(
@@ -215,7 +230,7 @@ class PlayerState(object):
         )
         assert len(self) == len(result)
         return result
-    
+
     def play_action(self, card):
         """
         Play an action card, putting it in the tableau and decreasing the
@@ -250,13 +265,13 @@ class PlayerState(object):
 
     def actionable(self):
         """Are there actions left to take with this hand?"""
-        return (self.actions > 0 
+        return (self.actions > 0
                 and any(c.isAction() for c in self.hand))
 
     def buyable(self):
         """Can this hand still buy a card?"""
         return self.buys > 0
-    
+
     def next_decision(self):
         """
         Return the next decision that must be made. This will be either
@@ -366,7 +381,7 @@ class Game(object):
         do anything interesting need to do this.
         """
         return self.playerstates[self.player_turn]
-    
+
     def current_play_card(self, card):
         """
         Play a card in the current state without decrementing the action count.
@@ -392,14 +407,18 @@ class Game(object):
     def num_players(self):
         return len(self.playerstates)
 
-    def card_choices(self):
+    def card_choices(self) -> List[Card]:
         """
         List all the cards that can currently be bought.
         """
-        choices = [card for card, count in list(self.card_counts.items())
-                   if count > 0]
-        choices.sort()
-        return choices
+        return sorted(
+            [
+                card
+                for (card, count) in self.card_counts.items()
+                if count > 0
+            ],
+            key=lambda card: (card.cost, card.name),
+        )
 
     def remove_card(self, card):
         """
@@ -418,7 +437,7 @@ class Game(object):
         newgame = self.copy()
         newgame.playerstates = newstates
         return newgame
-    
+
     def replace_current_state(self, newstate):
         """
         Do something with the current player's state and make a new overall
@@ -427,7 +446,7 @@ class Game(object):
         newgame = self.copy()
         newgame.playerstates[self.player_turn] = newstate
         return newgame
-    
+
     def change_current_state(self, **changes):
         """
         Make a numerical change to the current player's state, such as adding
@@ -460,12 +479,12 @@ class Game(object):
             if i == self.player_turn: continue
             newgame.playerstates[i] = func(newgame.playerstates[i])
         return newgame
-    
+
     def next_mini_turn(self):
         """
         Temporarily increase the turn counter, without doing any of the usual
-        end-of-turn mechanics. 
-        
+        end-of-turn mechanics.
+
         This is useful when players need to make decisions in the middle of
         another player's turn, creating what we call here a "mini-turn".
         """
@@ -503,7 +522,7 @@ class Game(object):
         decision = decisiontype(self)
         newgame = self.current_player().make_decision(decision)
         return newgame.run_decisions()
-    
+
     def simulated_copy(self):
         """
         Get a copy of this game, but with the `simulated` flag set to True
@@ -519,7 +538,7 @@ class Game(object):
             self.turn,
             simulated=True
         )
-        
+
     def simulate_turn(self):
         """
         Run through all the decisions the current player has to make, and
@@ -565,7 +584,7 @@ class Game(object):
         ))
 
         self.log.info("%d provinces left" % self.card_counts[province])
-        
+
         # Run AI hooks that need to happen before the turn.
         self.current_player().before_turn(self)
         endturn = self.run_decisions()
@@ -591,13 +610,14 @@ class Game(object):
         if self.num_players() > 4: return (zeros >= 4)
         else: return (zeros >= 3)
 
-    def run(self):
+    def run(self, max_rounds: int = 300):
         """
         Play a game of Dominion. Return a dictionary mapping players to scores.
         """
         game = self
         while not game.over():
             game = game.take_turn()
+            assert game.round < max_rounds, 'Game has entered infinite loop?'
         scores = [(state.player, state.score()) for state in game.playerstates]
         self.log.info("End of game.")
         self.log.info("Scores: %s" % scores)
@@ -607,17 +627,19 @@ class Game(object):
         return 'Game%s[%s]' % (str(self.playerstates), str(self.turn))
 
 class Decision(object):
-    def __init__(self, game):
+    def __init__(self, game) -> None:
         self.game = game
+
     def state(self):
         return self.game.state()
+
     def player(self):
         return self.game.current_player()
 
 class MultiDecision(Decision):
-    def __init__(self, game, min=0, max=INF):
-        self.min=min
-        self.max=max
+    def __init__(self, game, minimum: int = 0, maximum: int = INF):
+        self.min = minimum
+        self.max = maximum
         Decision.__init__(self, game)
 
 class ActDecision(Decision):
@@ -638,14 +660,17 @@ class ActDecision(Decision):
           (self.state().actions, self.state().buys, self.state().coins)
 
 class BuyDecision(Decision):
-    def coins(self):
+    def coins(self) -> int:
         return self.state().hand_value()
-    def buys(self):
+
+    def buys(self) -> int:
         return self.state().buys
-    def choices(self):
+
+    def choices(self) -> List[Optional[Card]]:
         assert self.coins() >= 0
         value = self.coins()
         return [None] + [card for card in self.game.card_choices() if card.cost <= value]
+
     def choose(self, card):
         self.game.log.info("%s buys %s" % (self.player().name, card))
         state = self.state()
@@ -659,14 +684,16 @@ class BuyDecision(Decision):
               state.gain(card).change(delta_buys=-1, delta_coins=-card.cost)
             )
             return newgame
-    
-    def __str__(self):
-        return "BuyDecision (%d buys, %d coins)" %\
-          (self.buys(), self.coins())
+
+    def __str__(self) -> str:
+        return "BuyDecision (%d buys, %d coins)" % (self.buys(), self.coins())
 
 class TrashDecision(MultiDecision):
     def choices(self):
-        return sorted(list(self.state().hand))
+        return sorted(
+            self.state().hand,
+            key=lambda card: card.cost, # Trash cheapest cards
+        )
 
     def choose(self, choices):
         self.game.log.info("%s trashes %s" % (self.player().name, choices))
@@ -675,20 +702,22 @@ class TrashDecision(MultiDecision):
             state = state.trash_card(card)
         return self.game.replace_current_state(state)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "TrashDecision(%s, %s, %s)" % (self.state().hand, self.min, self.max)
 
 class DiscardDecision(MultiDecision):
-    def choices(self):
-        return sorted(list(self.state().hand))
-    
+    def choices(self) -> List[Card]:
+        return sorted(
+            self.state().hand,
+            key=lambda card: card.cost, # Discard cheapest cards
+        )
+
     def choose(self, choices):
         self.game.log.info("%s discards %s" % (self.player().name, choices))
         state = self.state()
         for card in choices:
             state = state.discard_card(card)
         return self.game.replace_current_state(state)
-    
-    def __str__(self):
-        return "DiscardDecision" + str(self.state().hand)
 
+    def __str__(self) -> str:
+        return "DiscardDecision" + str(self.state().hand)

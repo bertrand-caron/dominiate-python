@@ -10,6 +10,7 @@ exclude_lines =
     def __repr__
 
     # Don't complain if tests don't hit defensive assertion code:
+    raise
     raise Exception
 		except.*:
 
