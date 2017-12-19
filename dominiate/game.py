@@ -462,15 +462,19 @@ class Game(object):
             Copper: 60 - 7 * len(players),
             Silver: 40,
             Gold: 30,
-            Curse: 10, #TODO: Find exact formula
+            Curse: 10 * (len(players) - 1), #TODO: Find exact formula
         }
         for card in var_cards:
             counts[card] = 10 #TODO: This formula needs to be adjusted or treasure cards
 
         playerstates = [PlayerState.initial_state(p) for p in players]
         random.shuffle(playerstates)
-        return Game(playerstates, counts, turn=0, simulated=simulated)
-
+        return Game(
+            playerstates,
+            counts,
+            turn=0,
+            simulated=simulated,
+        )
 
     def state(self):
         """
@@ -769,9 +773,13 @@ class GainDecision(Decision):
         self.card = card
 
     def choose(self, card):
-        return self.game.replace_current_state(
-            self.game.state().gain_cards((self.card,)),
-        )
+        if self.game.card_counts[card] > 0:
+            self.game.card_counts[card] -= 1
+            return self.game.replace_current_state(
+                self.game.state().gain_cards((self.card,)),
+            )
+        else:
+            return self.game
 
 class MultiDecision(Decision):
     def __init__(self, game, minimum: int = 0, maximum: int = INF) -> None:
