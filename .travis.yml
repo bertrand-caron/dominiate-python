@@ -7,5 +7,5 @@ install:
 script:
   - cd dominiate && make coverage
   #- make pylint
-after_success: cd dominiate && coveralls
+after_success: coveralls
 cache: pip
