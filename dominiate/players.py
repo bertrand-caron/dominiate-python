@@ -209,13 +209,13 @@ class BigMoney(AIPlayer):
         return chosen
 
     def make_discard_decision_incremental(self, decision, choices, allow_none=True):
-        actions_sorted = [ca for ca in choices if ca.isAction()]
+        actions_sorted = [card for card in choices if card.is_action()]
         actions_sorted.sort(key=lambda a: a.actions)
         plus_actions = sum([ca.actions for ca in actions_sorted])
         wasted_actions = len(actions_sorted) - plus_actions - decision.state().actions
         victory_cards = [
             card for card in choices
-            if card.isVictory() and not card.isAction() and not card.isTreasure()
+            if card.is_victory() and not card.is_action() and not card.is_treasure()
         ]
         if wasted_actions > 0:
             return actions_sorted[0]

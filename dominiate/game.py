@@ -42,16 +42,19 @@ class Card(object):
         self.reaction = reaction
         self.duration = duration
 
-    def isVictory(self):
+    def is_victory(self) -> bool:
         return self.vp > 0
 
-    def isCurse(self):
+    def is_pure_victory(self) -> bool:
+        return self.is_victory() and not self.is_action() and self.is_treasure()
+
+    def is_curse(self) -> bool:
         return self.vp < 0
 
-    def isTreasure(self):
+    def is_treasure(self):
         return self.treasure > 0
 
-    def isAction(self):
+    def is_action(self) -> bool:
         return any(
             [
                 self.coins,
@@ -62,14 +65,14 @@ class Card(object):
             ]
         )
 
-    def isAttack(self):
+    def is_attack(self) -> bool:
         return self._isAttack
 
-    def isDefense(self):
+    def is_defense(self) -> bool:
         return self._isDefense
 
     def perform_action(self, game):
-        assert self.isAction()
+        assert self.is_action()
         if self.cards:
             game = game.current_draw_cards(self.cards)
         if (self.coins or self.actions or self.buys):
@@ -165,7 +168,7 @@ class PlayerState(object):
         return len(self.hand)
 
     def is_defended(self) -> bool:
-        return any(x.isDefense() for x in self.hand)
+        return any(card.is_defense() for card in self.hand)
 
     def get_reactions(self):
         """
@@ -286,8 +289,10 @@ class PlayerState(object):
 
     def actionable(self):
         """Are there actions left to take with this hand?"""
-        return (self.actions > 0
-                and any(c.isAction() for c in self.hand))
+        return (
+            self.actions > 0
+            and any(card.is_action() for card in self.hand)
+        )
 
     def buyable(self):
         """Can this hand still buy a card?"""
@@ -688,7 +693,7 @@ class MultiDecision(Decision):
 
 class ActDecision(Decision):
     def choices(self):
-        return [None] + [card for card in self.state().hand if card.isAction()]
+        return [None] + [card for card in self.state().hand if card.is_action()]
     def choose(self, card):
         self.game.log.info("%s plays %s" % (self.player().name, card))
         if card is None:
@@ -747,7 +752,7 @@ class TrashDecision(MultiDecision):
     def choices(self):
         return sorted(
             self.state().hand,
-            key=lambda card: card.cost, # Trash cheapest cards
+            key=lambda card: (not card.is_curse(), card.cost), # Trash curses, then cheapest cards
         )
 
     def choose(self, choices):
@@ -764,7 +769,7 @@ class DiscardDecision(MultiDecision):
     def choices(self) -> List[Card]:
         return sorted(
             self.state().hand,
-            key=lambda card: (not card.isCurse(), card.cost), # Discard curses, then cheapest cards
+            key=lambda card: (not card.is_curse(), not card.is_pure_victory(), card.cost), # Discard curses, then (pure) victory cards, then cheapest cards
         )
 
     def choose(self, choices):
