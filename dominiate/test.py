@@ -14,7 +14,7 @@ from combobot import *
 from cards import BASE_ACTIONS
 
 def compare_bots(bots, n: int = 2):
-    scores = defaultdict(int)
+    scores = {bot: 0 for bot in bots}
     for i in range(n):
         shuffle(bots)
         game = Game.setup(bots, BASE_ACTIONS)
@@ -60,10 +60,10 @@ if __name__ == '__main__':
         stats = Stats(profile_file).sort_stats('cumtime')
         stats.print_stats()
 
+    #test_game()
     print(compare_bots([WitchBot(), MilitiaBot()], n=2))
     print(compare_bots([WitchBot(), SmithyBot()], n=2))
     print(compare_bots([MoatBot(), SmithyBot()], n=2))
     print(compare_bots([MoatBot(), WitchBot()], n=2))
-    #test_game()
     #compare_bots([BigMoney(), SmithyBot(), HillClimbBot(2, 3, 40)])
     #compare_bots([smithyComboBot, chapelComboBot, HillClimbBot(2, 3, 40)])

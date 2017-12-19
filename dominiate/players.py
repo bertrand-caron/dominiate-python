@@ -1,22 +1,21 @@
 import logging
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
-from game import Game, BuyDecision, ActDecision, TrashDecision, DiscardDecision, MultiDecision, GainDecision, INF
+from game import Game, BuyDecision, ActDecision, TrashDecision, DiscardDecision, MultiDecision, GainDecision, INF, NO_CARD
 from cards import Card, Copper, Silver, Gold, Curse, Estate, Duchy, Province
 
 class Player(object):
     def __init__(self, *args) -> None:
-        self.name = None
         raise NotImplementedError("Player is an abstract class")
 
     def make_decision(self, decision, state) -> None:
-        assert state.player is self
+        assert state.player is self # pragma: no cover
         raise NotImplementedError
 
     def make_multi_decision(self, decision, state) -> None:
         raise NotImplementedError
 
-    def make_gain_decision(self, card: Card) -> None:
+    def make_gain_decision(self, card: Card) -> Card:
         return card
 
     def __str__(self) -> str:
@@ -120,7 +119,7 @@ class BigMoney(AIPlayer):
     This AI strategy provides reasonable defaults for many AIs. On its own,
     it aims to buy money, and then buy victory (the "Big Money" strategy).
     """
-    def __init__(self, cutoff1=3, cutoff2=6):
+    def __init__(self, terminal_draws: List[Card] = [], cutoff1=3, cutoff2=6) -> None:
         self.cutoff1 = cutoff1  # when to buy duchy instead of gold
         self.cutoff2 = cutoff2  # when to buy duchy instead of silver
         #FIXME: names are implemented all wrong
@@ -147,17 +146,17 @@ class BigMoney(AIPlayer):
         """
         return self.buy_priority_order(game, decision)
 
-    def act_priority(self, decision, choice):
+    def act_priority(self, decision, card: Card) -> int:
         """
         Assign a numerical priority to each action. Higher priority actions
         will be chosen first.
         """
-        if choice is None:
+        if card is NO_CARD:
             return 0
         else:
-            return (100 * choice.actions + 10 * (choice.coins + choice.cards) + choice.buys) + 1
+            return (100 * card.actions + 10 * (card.coins + card.cards) + card.buys) + 1
 
-    def make_act_decision(self, decision):
+    def make_act_decision(self, decision) -> Card:
         """
         Choose an Action to play.
 
@@ -165,10 +164,10 @@ class BigMoney(AIPlayer):
         act_priority.
         """
         choices = decision.choices()
-        choices.sort(key=lambda x: self.act_priority(decision, x))
+        choices.sort(key=lambda card: self.act_priority(decision, card))
         return choices[-1]
 
-    def make_trash_decision_incremental(self, decision, choices, allow_none=True):
+    def make_trash_decision_incremental(self, decision, choices, allow_none=True) -> Optional[Card]:
         "Choose a single card to trash."
         deck = decision.state().all_cards()
         money = sum([card.treasure + card.coins for card in deck])
@@ -181,34 +180,34 @@ class BigMoney(AIPlayer):
             # an Estate is worth it
             return Estate
         elif allow_none:
-            return None
+            return NO_CARD
         else:
             # oh shit, we don't know what to trash
             # get rid of whatever looks like it's worth the least
             choices.sort(key=lambda x: (x.vp, x.cost))
             return choices[0]
 
-    def make_trash_decision(self, decision):
+    def make_trash_decision(self, decision) -> List[Card]:
         """
         The default way to decide which cards to trash is to repeatedly
-        choose one card to trash until None is chosen.
+        choose one card to trash until NO_CARD is chosen.
 
         TrashDecision is a MultiDecision, so return a list.
         """
         latest = False
-        chosen = []
+        chosen: List[Card] = []
         choices = decision.choices()
-        while choices and latest is not None and len(chosen) < decision.max:
+        while choices and latest is not NO_CARD and len(chosen) < decision.max:
             latest = self.make_trash_decision_incremental(
                 decision, choices,
                 allow_none = (len(chosen) >= decision.min)
             )
-            if latest is not None:
+            if latest is not NO_CARD:
                 choices.remove(latest)
                 chosen.append(latest)
         return chosen
 
-    def make_discard_decision_incremental(self, decision, choices, allow_none=True):
+    def make_discard_decision_incremental(self, decision, choices: List[Card], allow_none: bool = True) -> Optional[Card]:
         actions_sorted = [card for card in choices if card.is_action()]
         actions_sorted.sort(key=lambda a: a.actions)
         plus_actions = sum([ca.actions for ca in actions_sorted])
@@ -224,13 +223,13 @@ class BigMoney(AIPlayer):
         elif Copper in choices:
             return Copper
         elif allow_none:
-            return None
+            return NO_CARD
         else:
             priority_order = sorted(choices,
               key=lambda ca: (ca.actions, ca.cards, ca.coins, ca.treasure))
             return priority_order[0]
 
-    def make_discard_decision(self, decision):
+    def make_discard_decision(self, decision) -> List[Card]:
         # TODO: make this good.
         # This probably involves finding all distinct sets of cards to discard,
         # of size decision.min to decision.max, and figuring out how well the
@@ -241,15 +240,14 @@ class BigMoney(AIPlayer):
         # to avoid cheating.
 
         latest = False
-        chosen = []
+        chosen: List[Optional[Card]] = []
         choices = decision.choices()
-        while choices and latest is not None and len(chosen) < decision.max:
+        while choices and latest is not NO_CARD and len(chosen) < decision.max:
             latest = self.make_discard_decision_incremental(
                 decision, choices,
                 allow_none = (len(chosen) >= decision.min)
             )
-            if latest is not None:
+            if latest is not NO_CARD:
                 choices.remove(latest)
                 chosen.append(latest)
         return chosen
-

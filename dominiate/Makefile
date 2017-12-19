@@ -10,3 +10,7 @@ pylint:
 errors:
 	pylint -E $$(find . -name '*.py')
 .PHONY: pylint
+
+mypy:
+	mypy test.py
+.PHONY: mypy

@@ -1,6 +1,6 @@
 from typing import Any
 
-from game import Curse, Estate, Duchy, Province, Copper, Silver, Gold
+from game import Curse, Estate, Duchy, Province, Copper, Silver, Gold, NO_CARD
 from game import Card, TrashDecision, DiscardDecision, GainDecision, Game
 
 # simple actions

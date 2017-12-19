@@ -85,16 +85,16 @@ class Card(object):
             game = action(game)
         return game
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         raise Exception('Cards can only be compared with an explicit context (e.g. trashing, buying)')
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.name)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.name
 
 # define the cards that are in every game
@@ -106,6 +106,8 @@ Province = Card('Province', 8, vp=6)
 Copper = Card('Copper', 0, treasure=1)
 Silver = Card('Silver', 3, treasure=2)
 Gold   = Card('Gold', 6, treasure=3)
+
+NO_CARD = None
 
 DEFAULT_HAND_SIZE = 5
 STARTING_HAND = (Copper,)*7 + (Estate,)*3
@@ -395,7 +397,6 @@ class Game(object):
             Gold: 30,
             Curse: 10, #TODO: Find exact formula
         }
-        print(var_cards)
         for card in var_cards:
             counts[card] = 10 #TODO: This formula needs to be adjusted or treasure cards
 
@@ -669,14 +670,14 @@ class Decision(object):
     def __init__(self, game) -> None:
         self.game = game
 
-    def state(self):
+    def state(self) -> PlayerState:
         return self.game.state()
 
-    def player(self):
+    def player(self) -> str:
         return self.game.current_player()
 
 class GainDecision(Decision):
-    def __init__(self, game, card: Optional[Card] = None):
+    def __init__(self, game, card: Optional[Card] = None) -> None:
         super().__init__(game)
         self.card = card
 
@@ -686,17 +687,18 @@ class GainDecision(Decision):
         )
 
 class MultiDecision(Decision):
-    def __init__(self, game, minimum: int = 0, maximum: int = INF):
+    def __init__(self, game, minimum: int = 0, maximum: int = INF) -> None:
         self.min = minimum
         self.max = maximum
-        Decision.__init__(self, game)
+        super().__init__(game)
 
 class ActDecision(Decision):
-    def choices(self):
-        return [None] + [card for card in self.state().hand if card.is_action()]
+    def choices(self) -> List[Optional[Card]]:
+        return [NO_CARD] + [card for card in self.state().hand if card.is_action()]
+
     def choose(self, card):
         self.game.log.info("%s plays %s" % (self.player().name, card))
-        if card is None:
+        if card is NO_CARD:
             newgame = self.game.change_current_state(
               delta_actions=-self.state().actions
             )
@@ -704,7 +706,8 @@ class ActDecision(Decision):
         else:
             newgame = card.perform_action(self.game.current_play_action(card))
             return newgame
-    def __str__(self):
+
+    def __str__(self) -> str:
         return "ActDecision (%d actions, %d buys, +%d coins)" %\
           (self.state().actions, self.state().buys, self.state().coins)
 
@@ -718,10 +721,11 @@ class BuyDecision(Decision):
     def choices(self) -> List[Optional[Card]]:
         assert self.coins() >= 0
         value = self.coins()
-        return [None] + [card for card in self.game.card_choices() if card.cost <= value]
+        return [NO_CARD] + [card for card in self.game.card_choices() if card.cost <= value] 
 
     def choose(self, card):
-        if card is not None:
+        assert card is NO_CARD or isinstance(card, Card), card
+        if card is not NO_CARD:
             assert card.cost <= self.coins(), 'This card is too expensive (cost={0}, coins={1})'.format(card.cost, self.coins())
             assert self.game.card_counts[card] > 0, 'This card ({0}) has run out...'.format(card)
         self.game.log.info(
@@ -734,7 +738,7 @@ class BuyDecision(Decision):
             ),
         )
         state = self.state()
-        if card is None:
+        if card is NO_CARD:
             newgame = self.game.change_current_state(
               delta_buys=-state.buys
             )
@@ -749,7 +753,7 @@ class BuyDecision(Decision):
         return "BuyDecision (%d buys, %d coins)" % (self.buys(), self.coins())
 
 class TrashDecision(MultiDecision):
-    def choices(self):
+    def choices(self) -> List[Card]:
         return sorted(
             self.state().hand,
             key=lambda card: (not card.is_curse(), card.cost), # Trash curses, then cheapest cards
@@ -772,7 +776,7 @@ class DiscardDecision(MultiDecision):
             key=lambda card: (not card.is_curse(), not card.is_pure_victory(), card.cost), # Discard curses, then (pure) victory cards, then cheapest cards
         )
 
-    def choose(self, choices):
+    def choose(self, choices: List[Card]):
         self.game.log.info("%s discards %s" % (self.player().name, choices))
         state = self.state()
         for card in choices:
