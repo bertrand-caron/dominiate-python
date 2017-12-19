@@ -62,9 +62,9 @@ if __name__ == '__main__':
 
     #test_game()
     #print(compare_bots([ChapelBot(), ChapelBot()], n=2))
-    print(compare_bots([WitchBot(), MilitiaBot()], n=2))
     print(compare_bots([WitchBot(), SmithyBot()], n=2))
     print(compare_bots([MoatBot(), SmithyBot()], n=2))
     print(compare_bots([MoatBot(), WitchBot()], n=2))
+    print(compare_bots([WitchBot(), MilitiaBot()], n=2))
     #compare_bots([BigMoney(), SmithyBot(), HillClimbBot(2, 3, 40)])
     #compare_bots([smithyComboBot, chapelComboBot, HillClimbBot(2, 3, 40)])

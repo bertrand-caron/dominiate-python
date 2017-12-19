@@ -10,11 +10,12 @@ class Terminal_Draw_Big_Money(BigMoney):
     def __init__(self, terminal_draws: List[Card] = [], cutoff1: int = 3, cutoff2: int = 6) -> None:
         super().__init__(cutoff1, cutoff2)
         self.terminal_draws = terminal_draws
-        assert all(card.cards > 0 for card in self.terminal_draws), [
-            card
-            for card in self.terminal_draws
-            if card.cards <= 0
-        ]
+        if False:
+            assert all(card.cards > 0 for card in self.terminal_draws), [
+                card
+                for card in self.terminal_draws
+                if card.cards <= 0
+            ]
         self.name = '{0}Bot(cutoff1={1}, cutoff2={2})'.format(
             ''.join([card.name.title() for card in self.terminal_draws]),
             cutoff1,
@@ -31,12 +32,11 @@ class Terminal_Draw_Big_Money(BigMoney):
         else:
             choices = [Silver, Gold, Province]
 
-        potential_draw = sum(state.all_cards().count(card) * (DEFAULT_HAND_SIZE + card.cards) for card in self.terminal_draws)
-        if potential_draw < state.deck_size():
-            buy_more_draws = True
+        if state.action_density() < 1.0:
+            buy_more_actions = True
             choices += self.terminal_draws
         else:
-            buy_more_draws = False
+            buy_more_actions = False
 
         sorted_choices = sorted(
             filter(
@@ -44,7 +44,7 @@ class Terminal_Draw_Big_Money(BigMoney):
                 choices,
             ),
             key=lambda card: (
-                card not in self.terminal_draws if buy_more_draws else False,
+                card not in self.terminal_draws if buy_more_actions else False,
                 -card.cost,
             ),
         )

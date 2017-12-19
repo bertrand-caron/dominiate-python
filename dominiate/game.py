@@ -1,7 +1,8 @@
 import random
 import logging
-from typing import List, Optional, Union, Callable, Union, Sequence, Any
+from typing import List, Optional, Union, Callable, Union, Sequence, Any, Dict
 from sys import maxsize
+from itertools import groupby
 
 mainLog = logging.getLogger(__name__)
 logging.basicConfig(level=logging.WARN, format='%(levelname)s: %(message)s')
@@ -177,6 +178,20 @@ class PlayerState(object):
 
     def all_cards(self) -> List[Card]:
         return self.hand + self.tableau + self.drawpile + self.discard
+
+    def card_counts(self) -> Dict[Card, int]:
+        on_name = lambda x: x.name
+
+        return {
+            key: len(list(group))
+            for (key, group) in groupby(
+                sorted(
+                    self.all_cards(),
+                    key=on_name,
+                ),
+                key=on_name,
+            )
+        }
 
     def hand_value(self) -> int:
         """How many coins can the player spend?"""
@@ -369,6 +384,38 @@ class PlayerState(object):
             coins, buys = game.simulate_turn()
             yield coins, buys
 
+    def money_density(self, account_for_draws: bool = True) -> float:
+        all_cards = self.all_cards()
+        return (
+            sum(card.coins + card.treasure for card in all_cards)
+            /
+            sum(1 - (card.cards if account_for_draws else 0) for card in all_cards) # Draw cards makes money density higher
+        )
+
+    def mean_hand_size(self) -> float:
+        '''
+        Return expected number of cards per hand (assuming that all actions can be played)
+        '''
+        all_actions = [card for card in self.all_cards() if card.is_action()]
+        return DEFAULT_HAND_SIZE + sum(card.cards for card in all_actions) / (len(self.all_cards()) / DEFAULT_HAND_SIZE)
+
+    def action_density(self) -> float:
+        '''
+        Return expected number of action cards per hand.
+        '''
+        all_actions = [card for card in self.all_cards() if card.is_action()]
+        return len(all_actions) * DEFAULT_HAND_SIZE / len(self.all_cards())
+
+    def action_engine_lifetime(self) -> float:
+        '''
+        Returns the expected lifetime of an (action) engine.
+        A running engine is an engine drawing (at least) as many cards as it consumes.
+        '''
+        mean_draw_per_action = [card for card in self.all_cards() if card.is_action()]
+
+    def mean_money_per_turn(self) -> float:
+        return self.mean_hand_size() * self.money_density(account_for_draws=False)
+
 # How many duchies/provinces are there for n players?
 VICTORY_CARDS = {
     1: 5,  # useful for simulation
@@ -396,10 +443,14 @@ class Game(object):
         else:
             self.log.setLevel(logging.INFO)
 
-    def copy(self):
+    def copy(self) -> 'Game':
         "Make an exact copy of this game state."
-        return Game(self.playerstates[:], self.card_counts, self.turn,
-                    self.simulated)
+        return Game(
+            self.playerstates[:],
+            self.card_counts,
+            self.turn,
+            self.simulated,
+        )
 
     @staticmethod
     def setup(players, var_cards=(), simulated=False):
@@ -534,8 +585,12 @@ class Game(object):
         This is useful when players need to make decisions in the middle of
         another player's turn, creating what we call here a "mini-turn".
         """
-        return Game(self.playerstates[:], self.card_counts, self.turn+1,
-                    self.simulated)
+        return Game(
+            self.playerstates[:],
+            self.card_counts,
+            self.turn + 1,
+            self.simulated,
+        )
 
     def everyone_else_makes_a_decision(self, decision_template, attack=False):
         newgame = self.next_mini_turn()
@@ -627,14 +682,18 @@ class Game(object):
         the game state where it is the next player's turn.
         """
         self.log.info("")
-        self.log.info("Round %d / player %d: %s (vp=%d)" % (
+        self.log.info("Round %d / player %d: %s (vp=%d, money_density=%.1f, action_density=%.1f, mean_money=%.1f)" % (
             self.round + 1,
             self.player_turn + 1,
             self.current_player().name,
             self.state().score(),
+            self.state().money_density(),
+            self.state().action_density(),
+            self.state().mean_money_per_turn(),
         ))
 
-        self.log.info("%d provinces left" % self.card_counts[Province])
+        if False:
+            self.log.info("%d provinces left" % self.card_counts[Province])
 
         # Run AI hooks that need to happen before the turn.
         self.current_player().before_turn(self)
@@ -666,7 +725,7 @@ class Game(object):
             else:
                 return (zeros >= 3)
 
-    def run(self, max_rounds: int = 300):
+    def run(self, max_rounds: int = 300) -> Dict[Any, int]:
         """
         Play a game of Dominion. Return a dictionary mapping players to scores.
         """
@@ -675,11 +734,23 @@ class Game(object):
             game = game.take_turn()
             assert game.round < max_rounds, 'Game has entered infinite loop?'
         scores = [(state.player, state.score()) for state in game.playerstates]
-        self.log.info("End of game.")
+        self.log.info(
+            "End of game (finished_piles: {0})".format(
+                [card for (card, count) in game.card_counts.items() if count == 0],
+            )
+        )
+        self.log.info(
+            'Finish decks: {0}'.format(
+                {
+                    state.player: state.card_counts()
+                    for state in game.playerstates
+                }
+            ),
+        )
         self.log.info("Scores: %s" % scores)
         return scores
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'Game%s[%s]' % (str(self.playerstates), str(self.turn))
 
 class Decision(object):
