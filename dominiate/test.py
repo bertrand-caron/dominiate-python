@@ -60,9 +60,10 @@ if __name__ == '__main__':
         stats = Stats(profile_file).sort_stats('cumtime')
         stats.print_stats()
 
-    print(compare_bots([WitchBot(), SmithyBot()], n=5))
-    print(compare_bots([MoatBot(), SmithyBot()], n=5))
-    print(compare_bots([MoatBot(), WitchBot()], n=5))
+    print(compare_bots([WitchBot(), MilitiaBot()], n=2))
+    print(compare_bots([WitchBot(), SmithyBot()], n=2))
+    print(compare_bots([MoatBot(), SmithyBot()], n=2))
+    print(compare_bots([MoatBot(), WitchBot()], n=2))
     #test_game()
     #compare_bots([BigMoney(), SmithyBot(), HillClimbBot(2, 3, 40)])
     #compare_bots([smithyComboBot, chapelComboBot, HillClimbBot(2, 3, 40)])

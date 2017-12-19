@@ -764,7 +764,7 @@ class DiscardDecision(MultiDecision):
     def choices(self) -> List[Card]:
         return sorted(
             self.state().hand,
-            key=lambda card: card.cost, # Discard cheapest cards
+            key=lambda card: (not card.isCurse(), card.cost), # Discard curses, then cheapest cards
         )
 
     def choose(self, choices):

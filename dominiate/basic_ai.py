@@ -4,7 +4,7 @@ from typing import List
 
 from game import TrashDecision, DiscardDecision, DEFAULT_HAND_SIZE
 from players import AIPlayer, BigMoney
-from cards import Card, Copper, Estate, Silver, Duchy, Province, Gold, Smithy, Witch, Moat
+from cards import Card, Copper, Estate, Silver, Duchy, Province, Gold, Smithy, Witch, Moat, Militia
 
 class Terminal_Draw_Big_Money(BigMoney):
     def __init__(self, terminal_draws: List[Card] = [], cutoff1: int = 3, cutoff2: int = 6):
@@ -69,6 +69,12 @@ WitchBot = lambda cutoff1=3, cutoff2=6: Terminal_Draw_Big_Money(
 
 MoatBot = lambda cutoff1=3, cutoff2=6: Terminal_Draw_Big_Money(
     terminal_draws=[Moat],
+    cutoff1=cutoff1,
+    cutoff2=cutoff2,
+)
+
+MilitiaBot = lambda cutoff1=3, cutoff2=6: Terminal_Draw_Big_Money(
+    terminal_draws=[Militia],
     cutoff1=cutoff1,
     cutoff2=cutoff2,
 )

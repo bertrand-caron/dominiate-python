@@ -13,7 +13,7 @@ Laboratory = Card('Laboratory', 5, cards=2, actions=1)
 
 def chapel_action(game):
     newgame = game.current_player().make_decision(
-        TrashDecision(game, 0, 4)
+        TrashDecision(game, minimum=0, maximum=4)
     )
     return newgame
 
@@ -26,7 +26,7 @@ def cellar_action(game):
 
 def warehouse_action(game):
     newgame = game.current_player().make_decision(
-        DiscardDecision(game, 3, 3)
+        DiscardDecision(game, minimum=3, maximum=3)
     )
     return newgame
 
@@ -35,7 +35,7 @@ def council_room_action(game) -> Any:
 
 def militia_attack(game):
     return game.attack_with_decision(
-        lambda g: DiscardDecision(g, 2, 2)
+        lambda g: DiscardDecision(g, minimum=2, maximum=2)
     )
 
 def witch_attack(game):
