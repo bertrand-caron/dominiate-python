@@ -10,6 +10,11 @@ class Terminal_Draw_Big_Money(BigMoney):
     def __init__(self, terminal_draws: List[Card] = [], cutoff1: int = 3, cutoff2: int = 6) -> None:
         super().__init__(cutoff1, cutoff2)
         self.terminal_draws = terminal_draws
+        assert all(card.cards > 0 for card in self.terminal_draws), [
+            card
+            for card in self.terminal_draws
+            if card.cards <= 0
+        ]
         self.name = '{0}Bot(cutoff1={1}, cutoff2={2})'.format(
             ''.join([card.name.title() for card in self.terminal_draws]),
             cutoff1,

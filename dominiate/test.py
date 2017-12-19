@@ -61,6 +61,7 @@ if __name__ == '__main__':
         stats.print_stats()
 
     #test_game()
+    #print(compare_bots([ChapelBot(), ChapelBot()], n=2))
     print(compare_bots([WitchBot(), MilitiaBot()], n=2))
     print(compare_bots([WitchBot(), SmithyBot()], n=2))
     print(compare_bots([MoatBot(), SmithyBot()], n=2))

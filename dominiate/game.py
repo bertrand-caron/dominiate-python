@@ -1,12 +1,14 @@
 import random
 import logging
-from typing import List, Optional
+from typing import List, Optional, Union, Callable, Union, Sequence, Any
 from sys import maxsize
 
 mainLog = logging.getLogger(__name__)
 logging.basicConfig(level=logging.WARN, format='%(levelname)s: %(message)s')
 
 INF = maxsize
+
+EFFECT = Callable[['Game'], 'Game']
 
 class Card(object):
     """
@@ -15,9 +17,23 @@ class Card(object):
     To save computation, only one of each card should be constructed. Decks can
     contain many references to the same Card object.
     """
-    def __init__(self, name, cost, treasure=0, vp=0, coins=0, cards=0,
-                 actions=0, buys=0, potionCost=0, effect=(), isAttack=False,
-                 isDefense=False, reaction=(), duration=()):
+    def __init__(
+        self,
+        name: str,
+        cost: int,
+        treasure: int = 0,
+        vp: int = 0,
+        coins: int = 0,
+        cards: int = 0,
+        actions: int = 0,
+        buys: int = 0,
+        potionCost: int = 0,
+        effect: Union[EFFECT, Sequence[EFFECT]] = (),
+        isAttack: bool = False,
+        isDefense: bool = False,
+        reaction=(),
+        duration=(),
+    ) -> None:
         self.name = name
         self.cost = cost
         self.potionCost = potionCost
@@ -412,20 +428,20 @@ class Game(object):
         """
         return self.playerstates[self.player_turn]
 
-    def current_play_card(self, card):
+    def current_play_card(self, card: Card):
         """
         Play a card in the current state without decrementing the action count.
         Could be useful for Throne Rooms and such.
         """
         return self.replace_current_state(self.state().play_card(card))
 
-    def current_play_action(self, card):
+    def current_play_action(self, card: Card):
         """
         Remember, this is the one that decrements the action count.
         """
         return self.replace_current_state(self.state().play_action(card))
 
-    def current_draw_cards(self, n):
+    def current_draw_cards(self, n: int):
         """
         The current player draws n cards.
         """
@@ -450,7 +466,7 @@ class Game(object):
             key=lambda card: (card.cost, card.name),
         )
 
-    def remove_card(self, card):
+    def remove_card(self, card: Card) -> 'Game':
         """
         Remove a single card from the table.
         """
@@ -667,13 +683,13 @@ class Game(object):
         return 'Game%s[%s]' % (str(self.playerstates), str(self.turn))
 
 class Decision(object):
-    def __init__(self, game) -> None:
+    def __init__(self, game: Game) -> None:
         self.game = game
 
     def state(self) -> PlayerState:
         return self.game.state()
 
-    def player(self) -> str:
+    def player(self) -> Any:
         return self.game.current_player()
 
 class GainDecision(Decision):
@@ -768,6 +784,18 @@ class TrashDecision(MultiDecision):
 
     def __str__(self) -> str:
         return "TrashDecision(%s, %s, %s)" % (self.state().hand, self.min, self.max)
+
+class VoluntaryTrashDecision(TrashDecision):
+    '''
+    Voluntary trash decision (for instance, after playing a Chapel)
+    '''
+    pass
+
+class ForcedTrashDecision(TrashDecision):
+    '''
+    Forced trash decision (for instance, after playing an Upgrade).
+    '''
+    pass
 
 class DiscardDecision(MultiDecision):
     def choices(self) -> List[Card]:

@@ -202,6 +202,7 @@ class BigMoney(AIPlayer):
                 decision, choices,
                 allow_none = (len(chosen) >= decision.min)
             )
+            print(latest)
             if latest is not NO_CARD:
                 choices.remove(latest)
                 chosen.append(latest)
