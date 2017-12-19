@@ -314,7 +314,7 @@ class PlayerState(object):
         Remove a card from the game.
         """
         index = list(self.hand).index(card)
-        newhand = self.hand[:index] + self.hand[index+1:]
+        newhand = self.hand[:index] + self.hand[index + 1:]
         return PlayerState(
           self.player, newhand, self.drawpile, self.discard,
           self.tableau, self.actions, self.buys, self.coins
@@ -380,6 +380,7 @@ class PlayerState(object):
                 [self.simulation_state(cards)],
                 {Province: 12, Duchy: 12, Estate: 12, Copper: 12, Silver: 12, Gold: 12},
                 simulated=True,
+                trash=[],
             )
             coins, buys = game.simulate_turn()
             yield coins, buys
@@ -427,7 +428,7 @@ VICTORY_CARDS = {
 }
 
 class Game(object):
-    def __init__(self, playerstates, card_counts, turn=0, simulated=False):
+    def __init__(self, playerstates, card_counts, turn=0, simulated=False, trash: List[Card] = []):
         self.playerstates = playerstates
         self.card_counts = card_counts
         self.turn = turn
@@ -442,18 +443,20 @@ class Game(object):
             self.log.setLevel(logging.WARN)
         else:
             self.log.setLevel(logging.INFO)
+        self.trash = trash
 
     def copy(self) -> 'Game':
         "Make an exact copy of this game state."
         return Game(
             self.playerstates[:],
             self.card_counts,
-            self.turn,
-            self.simulated,
+            turn=self.turn,
+            simulated=self.simulated,
+            trash=self.trash,
         )
 
     @staticmethod
-    def setup(players, var_cards=(), simulated=False):
+    def setup(players, var_cards: List[Card] = (), simulated: bool = False):
         "Set up the game."
         counts = {
             Estate: VICTORY_CARDS[len(players)],
@@ -474,6 +477,7 @@ class Game(object):
             counts,
             turn=0,
             simulated=simulated,
+            trash=[],
         )
 
     def state(self):
@@ -528,7 +532,13 @@ class Game(object):
         new_counts = self.card_counts.copy()
         new_counts[card] -= 1
         assert new_counts[card] >= 0, (card, new_counts[card])
-        return Game(self.playerstates[:], new_counts, self.player_turn, self.simulated)
+        return Game(
+            self.playerstates[:],
+            new_counts,
+            turn=self.player_turn,
+            simulated=self.simulated,
+            trash=self.trash,
+        )
 
     def replace_states(self, newstates):
         """
@@ -592,8 +602,9 @@ class Game(object):
         return Game(
             self.playerstates[:],
             self.card_counts,
-            self.turn + 1,
-            self.simulated,
+            turn=self.turn + 1,
+            simulated=self.simulated,
+            trash=self.trash,
         )
 
     def everyone_else_makes_a_decision(self, decision_template, attack=False):
@@ -639,12 +650,14 @@ class Game(object):
         various actions.
         """
         return Game(
-            [state.simulated_from_here() if state is self.state()
-                                         else state.simulate()
-             for state in self.playerstates],
+            [
+                state.simulated_from_here() if state is self.state() else state.simulate()
+                for state in self.playerstates
+            ],
             self.card_counts,
-            self.turn,
-            simulated=True
+            turn=self.turn,
+            simulated=True,
+            trash=self.trash,
         )
 
     def simulate_turn(self):
@@ -705,11 +718,15 @@ class Game(object):
 
         next_turn = (self.turn + 1)
 
-        newgame = Game(endturn.playerstates[:], endturn.card_counts,
-                       next_turn, self.simulated)
+        newgame = Game(
+            endturn.playerstates[:],
+            endturn.card_counts,
+            turn=next_turn,
+            simulated=self.simulated,
+            trash=[],
+        )
         # mutate the new game object since nobody cares yet
-        newgame.playerstates[self.player_turn] =\
-          newgame.playerstates[self.player_turn].next_turn()
+        newgame.playerstates[self.player_turn] = newgame.playerstates[self.player_turn].next_turn()
 
         # Run AI hooks that need to happen after the turn.
         self.current_player().after_turn(newgame)

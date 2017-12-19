@@ -42,8 +42,12 @@ class DerivBot(HillClimbBot):
         for deriv in (1, 2):
             prev_order = sorted(list(self.values[deriv-1].items()), key=lambda x: -x[1])
             for iter in range(self.k):
-                game = Game([game.state().simulation_state()],
-                             game.card_counts, 0, simulated=True)
+                game = Game(
+                    [game.state().simulation_state()],
+                    game.card_counts,
+                    turn=0,
+                    simulated=True,
+                )
                 state = game.simulate_partial_turn()
                 hand = state.tableau + state.hand
 
