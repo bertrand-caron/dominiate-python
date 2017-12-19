@@ -309,7 +309,7 @@ class PlayerState(object):
           self.tableau, self.actions, self.buys, self.coins
         )
 
-    def trash_card(self, card):
+    def trash_card(self, card, game):
         """
         Remove a card from the game.
         """
@@ -381,6 +381,7 @@ class PlayerState(object):
                 {Province: 12, Duchy: 12, Estate: 12, Copper: 12, Silver: 12, Gold: 12},
                 simulated=True,
                 trash=[],
+                total_card_count=None,
             )
             coins, buys = game.simulate_turn()
             yield coins, buys
@@ -428,7 +429,7 @@ VICTORY_CARDS = {
 }
 
 class Game(object):
-    def __init__(self, playerstates, card_counts, turn=0, simulated=False, trash: List[Card] = []):
+    def __init__(self, playerstates, card_counts, turn=0, simulated=False, trash: List[Card] = [], total_card_count: Optional[int] = None):
         self.playerstates = playerstates
         self.card_counts = card_counts
         self.turn = turn
@@ -444,6 +445,7 @@ class Game(object):
         else:
             self.log.setLevel(logging.INFO)
         self.trash = trash
+        self.total_card_count = sum(self.card_counts.values()) if total_card_count is None else total_card_count
 
     def copy(self) -> 'Game':
         "Make an exact copy of this game state."
@@ -453,6 +455,7 @@ class Game(object):
             turn=self.turn,
             simulated=self.simulated,
             trash=self.trash,
+            total_card_count=self.total_card_count,
         )
 
     @staticmethod
@@ -468,7 +471,7 @@ class Game(object):
             Curse: 10 * (len(players) - 1), #TODO: Find exact formula
         }
         for card in var_cards:
-            counts[card] = 10 #TODO: This formula needs to be adjusted or treasure cards
+            counts[card] = 10 #TODO: This formula needs to be adjusted for treasure cards
 
         playerstates = [PlayerState.initial_state(p) for p in players]
         random.shuffle(playerstates)
@@ -478,6 +481,7 @@ class Game(object):
             turn=0,
             simulated=simulated,
             trash=[],
+            total_card_count=None,
         )
 
     def state(self):
@@ -537,7 +541,8 @@ class Game(object):
             new_counts,
             turn=self.player_turn,
             simulated=self.simulated,
-            trash=self.trash,
+            trash=self.trash + [card],
+            total_card_count=self.total_card_count,
         )
 
     def replace_states(self, newstates):
@@ -605,6 +610,7 @@ class Game(object):
             turn=self.turn + 1,
             simulated=self.simulated,
             trash=self.trash,
+            total_card_count=self.total_card_count,
         )
 
     def everyone_else_makes_a_decision(self, decision_template, attack=False):
@@ -658,6 +664,7 @@ class Game(object):
             turn=self.turn,
             simulated=True,
             trash=self.trash,
+            total_card_count=self.total_card_count,
         )
 
     def simulate_turn(self):
@@ -724,12 +731,14 @@ class Game(object):
             turn=next_turn,
             simulated=self.simulated,
             trash=[],
+            total_card_count=None,
         )
         # mutate the new game object since nobody cares yet
         newgame.playerstates[self.player_turn] = newgame.playerstates[self.player_turn].next_turn()
 
         # Run AI hooks that need to happen after the turn.
         self.current_player().after_turn(newgame)
+        #self.assert_no_cards_missing()
         return newgame
 
     def over(self) -> bool:
@@ -746,6 +755,26 @@ class Game(object):
             else:
                 return (zeros >= 3)
 
+    def assert_no_cards_missing(self) -> None:
+        '''
+        Make sure no cards 'disappeared'.
+        '''
+
+        assert (
+            len(self.trash)
+            +
+            sum(len(state.all_cards()) for state in self.playerstates)
+            +
+            sum(self.card_counts.values())
+            -
+            len(STARTING_HAND) * len(self.playerstates)
+        ) == self.total_card_count, (
+            self.total_card_count,
+            len(self.trash) + sum(len(state.all_cards()) for state in self.playerstates) + sum(self.card_counts.values()) - len(STARTING_HAND) * len(self.playerstates),
+            self.trash,
+            [state.all_cards() for state in self.playerstates],
+        )
+
     def run(self, max_rounds: int = 300) -> Dict[Any, int]:
         """
         Play a game of Dominion. Return a dictionary mapping players to scores.
@@ -760,6 +789,9 @@ class Game(object):
                 [card for (card, count) in game.card_counts.items() if count == 0],
             )
         )
+
+        self.assert_no_cards_missing()
+
         self.log.info(
             'Finish decks: {0}'.format(
                 {

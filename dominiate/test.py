@@ -32,7 +32,7 @@ def compare_bots(bots, n: int = 2):
 def test_game():
     player1 = BigMoney()
     player2 = BigMoney()
-    #player2.setLogLevel(DEBUG)
+    player2.setLogLevel(DEBUG)
     game = Game.setup([player1, player2], BASE_ACTIONS)
     results = game.run()
     return results
